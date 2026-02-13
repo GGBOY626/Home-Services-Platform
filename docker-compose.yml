@@ -1,0 +1,20 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: home-services-mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: "Yoobee@2025!"
+      MYSQL_DATABASE: "home_services"
+      MYSQL_USER: "app"
+      MYSQL_PASSWORD: "appsecret"
+      TZ: "Pacific/Auckland"
+    volumes:
+      - "D:/docker/home-services/mysql/data:/var/lib/mysql"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pYoobee@2025!"]
+      interval: 5s
+      timeout: 5s
+      retries: 10

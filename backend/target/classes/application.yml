@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: home-services-platform
+  profiles:
+    active: dev
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+logging:
+  level:
+    root: INFO
+    com.homeservices: INFO
+    org.springframework.security: INFO
+    org.hibernate.SQL: DEBUG
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
+app:
+  jwt:
+    access-token-validity-ms: 900000
+    refresh-token-validity-days: 7
+    secret: "HomeServicesPlatformJwtSecretKeyForSigningAccessAndRefreshTokensMinimum256Bits"
+  dispatch:
+    merchant-assign-ttl-minutes: 10
+    worker-accept-ttl-minutes: 5
