@@ -2,6 +2,8 @@ package com.homeservices.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -30,6 +32,8 @@ public class Order {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(columnDefinition = "CHAR(36)")
     private UUID id;
 
     @Column(name = "service_item_id", nullable = false)
@@ -54,13 +58,16 @@ public class Order {
     @Column(nullable = false, length = 30)
     private OrderStatus status;
 
-    @Column(name = "merchant_id")
+    @Column(name = "merchant_id", columnDefinition = "CHAR(36)")
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private UUID merchantId;
 
-    @Column(name = "worker_id")
+    @Column(name = "worker_id", columnDefinition = "CHAR(36)")
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private UUID workerId;
 
-    @Column(name = "created_by", nullable = false)
+    @Column(name = "created_by", nullable = false, columnDefinition = "CHAR(36)")
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private UUID createdBy;
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -75,7 +82,8 @@ public class Order {
     @Column(name = "cancelled_by_role", length = 20)
     private String cancelledByRole;
 
-    @Column(name = "cancelled_by_id")
+    @Column(name = "cancelled_by_id", columnDefinition = "CHAR(36)")
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private UUID cancelledById;
 
     @Column(name = "cancelled_at")

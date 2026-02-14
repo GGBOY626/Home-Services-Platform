@@ -2,6 +2,8 @@ package com.homeservices.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -24,7 +26,8 @@ public class MerchantService {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "merchant_id", nullable = false)
+    @Column(name = "merchant_id", nullable = false, columnDefinition = "CHAR(36)")
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private UUID merchantId;
 
     @Column(name = "service_item_id", nullable = false)

@@ -10,7 +10,7 @@ ALTER TABLE orders
 ALTER TABLE orders
     ADD COLUMN cancel_reason VARCHAR(255) NULL,
     ADD COLUMN cancelled_by_role VARCHAR(20) NULL,
-    ADD COLUMN cancelled_by_id BINARY(16) NULL,
+    ADD COLUMN cancelled_by_id CHAR(36) NULL,
     ADD COLUMN cancelled_at TIMESTAMP(6) NULL;
 
 -- Deadlines for timeout handling
@@ -30,12 +30,12 @@ CREATE INDEX idx_order_worker_accept_deadline ON orders(worker_accept_deadline);
 
 -- Optional: order status history for timeline
 CREATE TABLE order_status_history (
-    id BINARY(16) NOT NULL PRIMARY KEY,
-    order_id BINARY(16) NOT NULL,
+    id CHAR(36) NOT NULL PRIMARY KEY,
+    order_id CHAR(36) NOT NULL,
     from_status VARCHAR(30) NULL,
     to_status VARCHAR(30) NOT NULL,
     actor_role VARCHAR(20) NULL,
-    actor_id BINARY(16) NULL,
+    actor_id CHAR(36) NULL,
     reason VARCHAR(255) NULL,
     created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     CONSTRAINT fk_order_history_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE

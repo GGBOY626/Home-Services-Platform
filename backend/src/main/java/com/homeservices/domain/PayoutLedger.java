@@ -2,6 +2,8 @@ package com.homeservices.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -22,10 +24,12 @@ public class PayoutLedger {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "order_id", nullable = false, unique = true)
+    @Column(name = "order_id", nullable = false, unique = true, columnDefinition = "CHAR(36)")
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private UUID orderId;
 
-    @Column(name = "merchant_id", nullable = false)
+    @Column(name = "merchant_id", nullable = false, columnDefinition = "CHAR(36)")
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private UUID merchantId;
 
     @Column(name = "gross_amount_cents", nullable = false)

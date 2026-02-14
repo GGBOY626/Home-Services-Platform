@@ -1,8 +1,8 @@
 -- User accounts (all roles)
--- UUID columns use BINARY(16) to match Hibernate 6 default mapping for java.util.UUID
+-- UUID columns use CHAR(36) for human-readable display (avoids garbled BINARY(16) in DB clients)
 -- Enum columns use MySQL ENUM to match Hibernate 6 @Enumerated(EnumType.STRING) mapping
 CREATE TABLE user_account (
-    id BINARY(16) NOT NULL PRIMARY KEY,
+    id CHAR(36) NOT NULL PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     role ENUM('ADMIN', 'MERCHANT', 'USER', 'WORKER') NOT NULL,
@@ -15,8 +15,8 @@ CREATE INDEX idx_user_account_role ON user_account(role);
 
 -- Merchant profiles (one per merchant account)
 CREATE TABLE merchant_profile (
-    id BINARY(16) NOT NULL PRIMARY KEY,
-    account_id BINARY(16) NOT NULL UNIQUE,
+    id CHAR(36) NOT NULL PRIMARY KEY,
+    account_id CHAR(36) NOT NULL UNIQUE,
     display_name VARCHAR(255) NOT NULL,
     CONSTRAINT fk_merchant_account FOREIGN KEY (account_id) REFERENCES user_account(id) ON DELETE CASCADE
 );
@@ -25,10 +25,10 @@ CREATE INDEX idx_merchant_profile_account_id ON merchant_profile(account_id);
 
 -- Worker profiles (linked to merchant)
 CREATE TABLE worker_profile (
-    id BINARY(16) NOT NULL PRIMARY KEY,
-    account_id BINARY(16) NOT NULL UNIQUE,
+    id CHAR(36) NOT NULL PRIMARY KEY,
+    account_id CHAR(36) NOT NULL UNIQUE,
     display_name VARCHAR(255) NOT NULL,
-    merchant_id BINARY(16) NOT NULL,
+    merchant_id CHAR(36) NOT NULL,
     CONSTRAINT fk_worker_account FOREIGN KEY (account_id) REFERENCES user_account(id) ON DELETE CASCADE,
     CONSTRAINT fk_worker_merchant FOREIGN KEY (merchant_id) REFERENCES merchant_profile(id) ON DELETE CASCADE
 );
@@ -38,8 +38,8 @@ CREATE INDEX idx_worker_profile_account_id ON worker_profile(account_id);
 
 -- Refresh tokens for JWT
 CREATE TABLE refresh_token (
-    id BINARY(16) NOT NULL PRIMARY KEY,
-    account_id BINARY(16) NOT NULL,
+    id CHAR(36) NOT NULL PRIMARY KEY,
+    account_id CHAR(36) NOT NULL,
     token VARCHAR(512) NOT NULL UNIQUE,
     expires_at TIMESTAMP(6) NOT NULL,
     created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -51,14 +51,14 @@ CREATE INDEX idx_refresh_token_token ON refresh_token(token);
 
 -- Orders
 CREATE TABLE orders (
-    id BINARY(16) NOT NULL PRIMARY KEY,
+    id CHAR(36) NOT NULL PRIMARY KEY,
     service_type ENUM('CLEANING') NOT NULL,
     address VARCHAR(500) NOT NULL,
     notes VARCHAR(1000),
     status ENUM('PLACED', 'MERCHANT_ASSIGNED', 'WORKER_ASSIGNED', 'ACCEPTED', 'COMPLETED', 'CLOSED') NOT NULL,
-    merchant_id BINARY(16),
-    worker_id BINARY(16),
-    created_by BINARY(16) NOT NULL,
+    merchant_id CHAR(36),
+    worker_id CHAR(36),
+    created_by CHAR(36) NOT NULL,
     created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     CONSTRAINT fk_order_created_by FOREIGN KEY (created_by) REFERENCES user_account(id),

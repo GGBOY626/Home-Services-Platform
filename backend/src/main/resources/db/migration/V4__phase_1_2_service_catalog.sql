@@ -36,7 +36,7 @@ CREATE INDEX idx_service_item_code ON service_item(code);
 -- Merchant-specific offerings and price override
 CREATE TABLE merchant_service (
     id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    merchant_id BINARY(16) NOT NULL,
+    merchant_id CHAR(36) NOT NULL,
     service_item_id BIGINT NOT NULL,
     price_cents INT NOT NULL,
     is_active TINYINT(1) NOT NULL DEFAULT 1,
@@ -70,7 +70,7 @@ INSERT INTO service_item (id, category_id, code, name, description, base_price_c
 
 -- Merchant service: Demo merchant offers CLEANING_BASIC with override 7500
 INSERT INTO merchant_service (merchant_id, service_item_id, price_cents, is_active) VALUES
-(UNHEX(REPLACE('b0000000-0000-0000-0000-000000000001', '-', '')), 1, 7500, 1);
+('b0000000-0000-0000-0000-000000000001', 1, 7500, 1);
 
 -- Backfill existing orders: set service_item_id=1 (CLEANING_BASIC) and snapshots
 UPDATE orders

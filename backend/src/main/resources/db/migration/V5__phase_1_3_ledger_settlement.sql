@@ -22,8 +22,8 @@ CREATE INDEX idx_platform_fee_rule_effective ON platform_fee_rule(effective_from
 -- Payout ledger: one row per CLOSED order, immutable amounts
 CREATE TABLE payout_ledger (
     id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    order_id BINARY(16) NOT NULL,
-    merchant_id BINARY(16) NOT NULL,
+    order_id CHAR(36) NOT NULL,
+    merchant_id CHAR(36) NOT NULL,
     gross_amount_cents INT NOT NULL,
     platform_fee_cents INT NOT NULL,
     merchant_net_cents INT NOT NULL,

@@ -2,6 +2,8 @@ package com.homeservices.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -17,6 +19,8 @@ public class UserAccount {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(columnDefinition = "CHAR(36)")
     private UUID id;
 
     @Column(nullable = false, unique = true, length = 255)
