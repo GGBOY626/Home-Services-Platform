@@ -31,9 +31,9 @@ export function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md rounded-2xl border-neutral-200 shadow-sm">
         <CardHeader>
-          <CardTitle>User — Sign in</CardTitle>
+          <CardTitle className="text-xl">Sign in</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

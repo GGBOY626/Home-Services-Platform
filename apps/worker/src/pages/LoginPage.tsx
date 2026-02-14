@@ -29,8 +29,8 @@ export function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader><CardTitle>Worker — Sign in</CardTitle></CardHeader>
+      <Card className="w-full max-w-md rounded-2xl border-neutral-200 shadow-sm">
+        <CardHeader><CardTitle>Sign in</CardTitle></CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">

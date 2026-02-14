@@ -1,40 +1,44 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { api, Order } from '@home-services/shared';
-import { Card, CardHeader, CardTitle, CardContent } from '@home-services/ui';
-import { Button, Input, Label } from '@home-services/ui';
+import type { Order } from '@home-services/shared';
+import { Card, CardContent } from '@home-services/ui';
+import { Button } from '@home-services/ui';
 import { useAuth } from '../auth';
+import { useApi } from '../lib/useApi';
 import { useToast } from '@home-services/ui';
+import { StatusBadge } from '../components/StatusBadge';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { formatDate, formatCurrency, formatScheduled } from '../lib/format';
 
 export function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { token } = useAuth();
+  const { api: apiRequest } = useApi();
   const navigate = useNavigate();
   const { addToast } = useToast();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [cancelReason, setCancelReason] = useState('');
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   useEffect(() => {
     if (!token || !id) return;
-    api<Order>(`/user/orders/${id}`, { token })
+    apiRequest<Order>(`/user/orders/${id}`)
       .then(setOrder)
-      .catch((err) => {
-        addToast('error', 'Failed to load order', err.message);
-        navigate('/');
+      .catch(() => {
+        addToast('error', 'Order not found');
+        navigate('/orders');
       })
       .finally(() => setLoading(false));
-  }, [token, id, navigate, addToast]);
+  }, [token, id, navigate, addToast, apiRequest]);
 
   const handleConfirm = async () => {
-    if (!token || !id) return;
+    if (!id) return;
     setActionLoading(true);
     try {
-      await api<Order>(`/user/orders/${id}/confirm`, { method: 'POST', token });
-      addToast('success', 'Order closed', 'You confirmed completion. Thank you!');
-      setOrder((prev) => (prev ? { ...prev, status: 'CLOSED' } : null));
+      const updated = await apiRequest<Order>(`/user/orders/${id}/confirm`, { method: 'POST' });
+      setOrder(updated);
+      addToast('success', 'Order closed', 'Thank you for confirming.');
     } catch (err) {
       addToast('error', 'Action failed', err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -42,18 +46,15 @@ export function OrderDetailPage() {
     }
   };
 
-  const handleCancelOrder = async () => {
-    if (!token || !id) return;
+  const handleCancel = async (reason: string) => {
+    if (!id) return;
     setActionLoading(true);
     try {
-      const updated = await api<Order>(`/user/orders/${id}/cancel`, {
+      const updated = await apiRequest<Order>(`/user/orders/${id}/cancel`, {
         method: 'POST',
-        token,
-        body: JSON.stringify({ reason: cancelReason || undefined }),
+        body: JSON.stringify({ reason: reason || undefined }),
       });
       setOrder(updated);
-      setShowCancelConfirm(false);
-      setCancelReason('');
       addToast('success', 'Order cancelled');
     } catch (err) {
       addToast('error', 'Cancel failed', err instanceof Error ? err.message : 'Unknown error');
@@ -63,55 +64,71 @@ export function OrderDetailPage() {
   };
 
   if (loading || !order) {
-    return <p className="text-neutral-600">Loading…</p>;
+    return (
+      <div className="flex justify-center py-12">
+        <p className="text-neutral-500">Loading…</p>
+      </div>
+    );
   }
 
-  const canConfirm = order.status === 'COMPLETED';
   const canCancel = order.status === 'PLACED' || order.status === 'MERCHANT_ASSIGNED';
+  const canConfirm = order.status === 'COMPLETED';
+  const terminal = ['CANCELLED', 'EXPIRED', 'CLOSED'].includes(order.status);
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>{order.serviceType} — {order.status}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <p><span className="font-medium">Address:</span> {order.address}</p>
-          {order.notes && <p><span className="font-medium">Notes:</span> {order.notes}</p>}
-          <p className="text-sm text-neutral-500">
-            Created {new Date(order.createdAt).toLocaleString()}
-          </p>
-          {canConfirm && (
-            <Button onClick={handleConfirm} disabled={actionLoading} className="mt-4">
-              {actionLoading ? 'Confirming…' : 'Confirm completion'}
-            </Button>
+    <div className="mx-auto max-w-2xl px-4 py-8">
+      <Card className="rounded-2xl border-neutral-200 shadow-sm">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-2 flex-wrap">
+            <StatusBadge status={order.status} />
+            <span className="text-lg font-medium text-neutral-700">{order.serviceNameSnapshot}</span>
+          </div>
+          <p className="mt-2 text-sm text-neutral-600">{formatCurrency(order.priceCents)} · {order.durationMinutesSnapshot} min</p>
+          <p className="mt-2 text-sm font-medium text-neutral-700">Scheduled: {formatScheduled(order.scheduledAt)}</p>
+          <p className="mt-4 text-neutral-900">{order.address}</p>
+          {order.notes && (
+            <p className="mt-2 text-sm text-neutral-600">
+              <span className="font-medium">Notes:</span> {order.notes}
+            </p>
           )}
-          {canCancel && !showCancelConfirm && (
-            <Button variant="outline" onClick={() => setShowCancelConfirm(true)} className="mt-4 ml-2">
-              Cancel order
-            </Button>
+          {order.cancelReason && (
+            <p className="mt-2 text-sm text-neutral-500">
+              <span className="font-medium">Cancel reason:</span> {order.cancelReason}
+            </p>
           )}
-          {canCancel && showCancelConfirm && (
-            <div className="mt-4 rounded-md border border-neutral-200 bg-neutral-50 p-4 space-y-3">
-              <Label htmlFor="cancel-reason">Reason (optional)</Label>
-              <Input
-                id="cancel-reason"
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                placeholder="e.g. Wrong address"
-              />
-              <div className="flex gap-2">
-                <Button onClick={handleCancelOrder} disabled={actionLoading}>
-                  {actionLoading ? 'Cancelling…' : 'Confirm cancel'}
-                </Button>
-                <Button variant="outline" onClick={() => { setShowCancelConfirm(false); setCancelReason(''); }} disabled={actionLoading}>
-                  Back
-                </Button>
-              </div>
-            </div>
-          )}
+          <p className="mt-4 text-sm text-neutral-500">Created {formatDate(order.createdAt)}</p>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            {canConfirm && (
+              <Button size="lg" onClick={handleConfirm} disabled={actionLoading}>
+                {actionLoading ? 'Confirming…' : 'Confirm Completion'}
+              </Button>
+            )}
+            {canCancel && (
+              <Button variant="destructive" size="lg" onClick={() => setCancelOpen(true)} disabled={actionLoading}>
+                Cancel Order
+              </Button>
+            )}
+            {terminal && (
+              <p className="text-sm text-neutral-500">No further actions.</p>
+            )}
+          </div>
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        title="Cancel order"
+        description="Your order will be cancelled. You can add a reason below."
+        confirmLabel="Confirm cancel"
+        cancelLabel="Back"
+        variant="destructive"
+        reasonLabel="Reason (optional)"
+        reasonPlaceholder="e.g. Wrong address"
+        onConfirm={handleCancel}
+        loading={actionLoading}
+      />
     </div>
   );
 }

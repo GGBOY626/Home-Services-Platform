@@ -1,35 +1,40 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { api, Order } from '@home-services/shared';
-import { Card, CardHeader, CardTitle, CardContent } from '@home-services/ui';
-import { Button, Input, Label } from '@home-services/ui';
-import { useAuth } from '../auth';
+import type { Order } from '@home-services/shared';
+import { Card, CardContent } from '@home-services/ui';
+import { Button } from '@home-services/ui';
+import { useApi } from '../lib/useApi';
 import { useToast } from '@home-services/ui';
+import { StatusBadge } from '../components/StatusBadge';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { formatDate, formatCurrency, formatScheduled } from '../lib/format';
 
 export function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { token } = useAuth();
+  const { api } = useApi();
   const navigate = useNavigate();
   const { addToast } = useToast();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [showRejectConfirm, setShowRejectConfirm] = useState(false);
-  const [rejectReason, setRejectReason] = useState('');
+  const [rejectOpen, setRejectOpen] = useState(false);
 
   useEffect(() => {
-    if (!token || !id) return;
-    api<Order>(`/worker/orders/${id}`, { token })
+    if (!id) return;
+    api<Order>(`/worker/orders/${id}`)
       .then(setOrder)
-      .catch(() => navigate('/'))
+      .catch(() => {
+        addToast('error', 'Order not found');
+        navigate('/');
+      })
       .finally(() => setLoading(false));
-  }, [token, id, navigate]);
+  }, [id, navigate, addToast, api]);
 
   const handleAccept = async () => {
-    if (!token || !id) return;
+    if (!id) return;
     setActionLoading(true);
     try {
-      const updated = await api<Order>(`/worker/orders/${id}/accept`, { method: 'POST', token });
+      const updated = await api<Order>(`/worker/orders/${id}/accept`, { method: 'POST' });
       setOrder(updated);
       addToast('success', 'Order accepted');
     } catch (e) {
@@ -40,12 +45,12 @@ export function OrderDetailPage() {
   };
 
   const handleComplete = async () => {
-    if (!token || !id) return;
+    if (!id) return;
     setActionLoading(true);
     try {
-      const updated = await api<Order>(`/worker/orders/${id}/complete`, { method: 'POST', token });
+      const updated = await api<Order>(`/worker/orders/${id}/complete`, { method: 'POST' });
       setOrder(updated);
-      addToast('success', 'Order marked completed');
+      addToast('success', 'Job completed');
     } catch (e) {
       addToast('error', 'Failed', e instanceof Error ? e.message : 'Unknown error');
     } finally {
@@ -53,19 +58,16 @@ export function OrderDetailPage() {
     }
   };
 
-  const handleReject = async () => {
-    if (!token || !id) return;
+  const handleReject = async (reason: string) => {
+    if (!id) return;
     setActionLoading(true);
     try {
       const updated = await api<Order>(`/worker/orders/${id}/reject`, {
         method: 'POST',
-        token,
-        body: JSON.stringify({ reason: rejectReason || undefined }),
+        body: JSON.stringify({ reason: reason || undefined }),
       });
       setOrder(updated);
-      setShowRejectConfirm(false);
-      setRejectReason('');
-      addToast('success', 'Order rejected', 'Order returned to merchant.');
+      addToast('success', 'Order rejected');
     } catch (e) {
       addToast('error', 'Failed', e instanceof Error ? e.message : 'Unknown error');
     } finally {
@@ -73,47 +75,65 @@ export function OrderDetailPage() {
     }
   };
 
-  if (loading || !order) return <p className="text-neutral-600">Loading…</p>;
+  if (loading || !order) {
+    return (
+      <div className="flex justify-center py-12">
+        <p className="text-neutral-500">Loading…</p>
+      </div>
+    );
+  }
 
   const canAccept = order.status === 'WORKER_ASSIGNED';
   const canComplete = order.status === 'ACCEPTED';
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader><CardTitle>{order.serviceType} — {order.status}</CardTitle></CardHeader>
-        <CardContent className="space-y-2">
-          <p><span className="font-medium">Address:</span> {order.address}</p>
-          {order.notes && <p><span className="font-medium">Notes:</span> {order.notes}</p>}
-          <div className="mt-4 flex gap-2 flex-wrap">
-            {canAccept && !showRejectConfirm && (
+    <div className="mx-auto max-w-2xl px-4 py-8">
+      <Card className="rounded-2xl border-neutral-200 shadow-sm">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-2 flex-wrap mb-4">
+            <StatusBadge status={order.status} />
+            <span className="text-lg font-medium text-neutral-700">{order.serviceNameSnapshot}</span>
+          </div>
+          <p className="text-sm text-neutral-600">{formatCurrency(order.priceCents)} · {order.durationMinutesSnapshot} min</p>
+          <p className="text-2xl font-bold text-neutral-900">{formatScheduled(order.scheduledAt)}</p>
+          <p className="mt-1 text-lg font-medium text-neutral-700">{order.address}</p>
+          {order.notes && (
+            <p className="mt-3 text-neutral-600"><span className="font-medium">Notes:</span> {order.notes}</p>
+          )}
+          <p className="mt-4 text-sm text-neutral-500">Created {formatDate(order.createdAt)}</p>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            {canAccept && (
               <>
-                <Button onClick={handleAccept} disabled={actionLoading}>
-                  {actionLoading ? 'Processing…' : 'Accept order'}
+                <Button size="lg" onClick={handleAccept} disabled={actionLoading}>
+                  {actionLoading ? 'Processing…' : 'Accept Job'}
                 </Button>
-                <Button variant="outline" onClick={() => setShowRejectConfirm(true)} disabled={actionLoading}>
+                <Button variant="destructive" size="lg" onClick={() => setRejectOpen(true)} disabled={actionLoading}>
                   Reject
                 </Button>
               </>
             )}
-            {canAccept && showRejectConfirm && (
-              <div className="w-full rounded-md border border-neutral-200 bg-neutral-50 p-4 space-y-3">
-                <Label htmlFor="reject-reason">Reason (optional)</Label>
-                <Input id="reject-reason" value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="e.g. Not available" />
-                <div className="flex gap-2">
-                  <Button variant="secondary" onClick={handleReject} disabled={actionLoading}>{actionLoading ? 'Rejecting…' : 'Confirm reject'}</Button>
-                  <Button variant="outline" onClick={() => { setShowRejectConfirm(false); setRejectReason(''); }} disabled={actionLoading}>Back</Button>
-                </div>
-              </div>
-            )}
             {canComplete && (
-              <Button onClick={handleComplete} disabled={actionLoading}>
-                {actionLoading ? 'Processing…' : 'Mark completed'}
+              <Button size="lg" onClick={handleComplete} disabled={actionLoading}>
+                {actionLoading ? 'Processing…' : 'Complete Job'}
               </Button>
             )}
           </div>
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={rejectOpen}
+        onOpenChange={setRejectOpen}
+        title="Reject job"
+        description="This order will be returned to the merchant."
+        confirmLabel="Confirm reject"
+        variant="destructive"
+        reasonLabel="Reason (optional)"
+        reasonPlaceholder="e.g. Not available"
+        onConfirm={handleReject}
+        loading={actionLoading}
+      />
     </div>
   );
 }
