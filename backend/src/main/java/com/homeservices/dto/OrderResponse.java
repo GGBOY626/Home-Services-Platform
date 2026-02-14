@@ -1,7 +1,6 @@
 package com.homeservices.dto;
 
 import com.homeservices.domain.OrderStatus;
-import com.homeservices.domain.ServiceType;
 import lombok.Builder;
 import lombok.Data;
 
@@ -13,7 +12,10 @@ import java.util.UUID;
 public class OrderResponse {
 
     private UUID id;
-    private ServiceType serviceType;
+    private Long serviceItemId;
+    private String serviceNameSnapshot;
+    private Integer priceCents;
+    private Integer durationMinutesSnapshot;
     private String address;
     private String notes;
     private OrderStatus status;
@@ -28,5 +30,6 @@ public class OrderResponse {
     private Instant cancelledAt;
     private Instant merchantAssignDeadline;
     private Instant workerAcceptDeadline;
+    private Instant scheduledAt;
     private Long version;
 }

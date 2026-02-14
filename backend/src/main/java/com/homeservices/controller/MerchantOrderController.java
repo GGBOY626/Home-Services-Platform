@@ -1,5 +1,7 @@
 package com.homeservices.controller;
 
+import com.homeservices.config.AuditLogging;
+import com.homeservices.domain.WorkerAvailability;
 import com.homeservices.domain.WorkerProfile;
 import com.homeservices.dto.AssignWorkerRequest;
 import com.homeservices.dto.OrderResponse;
@@ -57,19 +59,35 @@ public class MerchantOrderController {
     }
 
     @GetMapping("/workers")
-    @Operation(summary = "List my workers")
-    public ResponseEntity<List<WorkerSummaryResponse>> listWorkers(@AuthenticationPrincipal JwtPrincipal principal) {
+    @Operation(summary = "List my workers (optional filter: availability=ONLINE)")
+    public ResponseEntity<List<WorkerSummaryResponse>> listWorkers(
+            @AuthenticationPrincipal JwtPrincipal principal,
+            @RequestParam(required = false) String availability) {
+        long start = System.currentTimeMillis();
         UUID merchantId = currentUserService.getMerchantId(principal)
             .orElseThrow(() -> new IllegalStateException("Merchant profile not found"));
-        List<WorkerProfile> workers = workerProfileRepository.findByMerchantId(merchantId);
+        List<WorkerProfile> workers;
+        if ("ONLINE".equalsIgnoreCase(availability)) {
+            workers = workerProfileRepository.findByMerchantIdAndAvailability(merchantId, WorkerAvailability.ONLINE);
+        } else {
+            workers = workerProfileRepository.findByMerchantId(merchantId);
+        }
         List<WorkerSummaryResponse> list = workers.stream()
-            .map(w -> WorkerSummaryResponse.builder()
-                .id(w.getId())
-                .accountId(w.getAccountId())
-                .displayName(w.getDisplayName())
-                .build())
+            .map(this::toWorkerSummary)
             .collect(Collectors.toList());
+        AuditLogging.logWithActor("READ", "WorkerProfile", "merchantId=" + merchantId + ",availability=" + availability,
+            principal.role().name(), principal.id().toString(), System.currentTimeMillis() - start);
         return ResponseEntity.ok(list);
+    }
+
+    private WorkerSummaryResponse toWorkerSummary(WorkerProfile w) {
+        return WorkerSummaryResponse.builder()
+            .id(w.getId())
+            .accountId(w.getAccountId())
+            .displayName(w.getDisplayName())
+            .availability(w.getAvailability().name())
+            .lastSeenAt(w.getLastSeenAt())
+            .build();
     }
 
     @PostMapping("/orders/{id}/assign-worker")

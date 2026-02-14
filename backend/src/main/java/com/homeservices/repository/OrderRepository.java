@@ -25,4 +25,6 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     List<Order> findByStatusAndMerchantAssignDeadlineBefore(OrderStatus status, Instant deadline);
 
     List<Order> findByStatusAndWorkerAcceptDeadlineBefore(OrderStatus status, Instant deadline);
+
+    List<Order> findByStatus(OrderStatus status);
 }

@@ -2,12 +2,19 @@ package com.homeservices.service;
 
 import com.homeservices.config.AuditLogging;
 import com.homeservices.config.DispatchProperties;
-import com.homeservices.domain.*;
+import com.homeservices.domain.Order;
+import com.homeservices.domain.OrderStatus;
+import com.homeservices.domain.OrderStatusHistory;
+import com.homeservices.domain.Role;
+import com.homeservices.domain.ServiceItem;
+import com.homeservices.domain.WorkerAvailability;
+import com.homeservices.domain.WorkerProfile;
 import com.homeservices.dto.CreateOrderRequest;
 import com.homeservices.dto.OrderResponse;
 import com.homeservices.repository.MerchantProfileRepository;
 import com.homeservices.repository.OrderRepository;
 import com.homeservices.repository.OrderStatusHistoryRepository;
+import com.homeservices.repository.ServiceItemRepository;
 import com.homeservices.repository.WorkerProfileRepository;
 import com.homeservices.security.JwtPrincipal;
 import lombok.RequiredArgsConstructor;
@@ -28,30 +35,47 @@ import static com.homeservices.config.RequestIdFilter.MDC_REQUEST_ID;
 public class OrderService {
 
     private final OrderRepository orderRepository;
+    private final ServiceItemRepository serviceItemRepository;
     private final MerchantProfileRepository merchantProfileRepository;
     private final WorkerProfileRepository workerProfileRepository;
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
     private final DispatchProperties dispatchProperties;
+    private final LedgerService ledgerService;
+    private final SchedulingValidator schedulingValidator;
 
     @Transactional
     public OrderResponse create(CreateOrderRequest request, JwtPrincipal principal) {
-        if (request.getServiceType() != ServiceType.CLEANING) {
-            throw new IllegalStateException("Only CLEANING service is supported in Phase 1");
+        ServiceItem item = serviceItemRepository.findById(request.getServiceItemId())
+            .orElseThrow(() -> new IllegalArgumentException("Service item not found: " + request.getServiceItemId()));
+        if (!Boolean.TRUE.equals(item.getIsActive())) {
+            throw new IllegalStateException("Service item is not available for booking");
         }
-        long start = System.currentTimeMillis();
+        Instant scheduledAt;
+        try {
+            scheduledAt = Instant.parse(request.getScheduledAt());
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid scheduled time format. Use ISO-8601 (e.g. 2026-02-18T10:00:00)");
+        }
         Instant now = Instant.now();
+        schedulingValidator.validate(scheduledAt, now);
+
+        long start = System.currentTimeMillis();
         Instant merchantDeadline = now.plusSeconds(dispatchProperties.getMerchantAssignTtlMinutes() * 60L);
         Order order = Order.builder()
-            .serviceType(request.getServiceType())
+            .serviceItemId(item.getId())
+            .serviceNameSnapshot(item.getName())
+            .priceCents(item.getBasePriceCents())
+            .durationMinutesSnapshot(item.getDurationMinutes())
             .address(request.getAddress().trim())
             .notes(request.getNotes() != null ? request.getNotes().trim() : null)
             .status(OrderStatus.PLACED)
             .createdBy(principal.id())
             .merchantAssignDeadline(merchantDeadline)
+            .scheduledAt(scheduledAt)
             .build();
         order = orderRepository.save(order);
         recordHistory(order.getId(), null, OrderStatus.PLACED.name(), principal.role().name(), principal.id(), null);
-        AuditLogging.logWithActor("CREATE", "Order", "id=" + order.getId(),
+        AuditLogging.logWithActor("CREATE", "Order", "id=" + order.getId() + ",scheduledAt=" + scheduledAt,
             principal.role().name(), principal.id().toString(), System.currentTimeMillis() - start);
         return toResponse(order);
     }
@@ -138,6 +162,11 @@ public class OrderService {
         if (!worker.getMerchantId().equals(merchantId)) {
             throw new IllegalArgumentException("Worker does not belong to your merchant");
         }
+        if (worker.getAvailability() != WorkerAvailability.ONLINE) {
+            AuditLogging.logWithActor("UPDATE", "Order", "assign-worker validation failed: worker OFFLINE",
+                principal.role().name(), principal.id().toString(), System.currentTimeMillis() - start);
+            throw new IllegalArgumentException("Selected worker is currently OFFLINE.");
+        }
         OrderStatus from = order.getStatus();
         order.setWorkerId(workerId);
         order.setStatus(OrderStatus.WORKER_ASSIGNED);
@@ -205,6 +234,7 @@ public class OrderService {
         order.setStatus(OrderStatus.CLOSED);
         order = orderRepository.save(order);
         recordHistory(order.getId(), from.name(), order.getStatus().name(), principal.role().name(), principal.id(), null);
+        ledgerService.createLedgerForOrderIfEligible(order.getId());
         AuditLogging.logWithActor("UPDATE", "Order", "id=" + order.getId(),
             principal.role().name(), principal.id().toString(), System.currentTimeMillis() - start);
         return toResponse(order);
@@ -412,10 +442,39 @@ public class OrderService {
             .orElse(null);
     }
 
+    @Transactional
+    public OrderResponse reschedule(UUID orderId, String scheduledAtIso, JwtPrincipal principal) {
+        Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+        if (order.getStatus() != OrderStatus.PLACED) {
+            throw new IllegalStateException("Only orders with status PLACED can be rescheduled. Current: " + order.getStatus());
+        }
+        if (!order.getCreatedBy().equals(principal.id())) {
+            throw new IllegalArgumentException("Only the order creator can reschedule");
+        }
+        Instant scheduledAt;
+        try {
+            scheduledAt = Instant.parse(scheduledAtIso);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid scheduled time format. Use ISO-8601 (e.g. 2026-02-18T10:00:00)");
+        }
+        schedulingValidator.validate(scheduledAt, Instant.now());
+
+        long start = System.currentTimeMillis();
+        order.setScheduledAt(scheduledAt);
+        order = orderRepository.save(order);
+        AuditLogging.logWithActor("UPDATE", "Order", "id=" + orderId + ",reschedule,scheduledAt=" + scheduledAt,
+            principal.role().name(), principal.id().toString(), System.currentTimeMillis() - start);
+        return toResponse(order);
+    }
+
     private OrderResponse toResponse(Order order) {
         return OrderResponse.builder()
             .id(order.getId())
-            .serviceType(order.getServiceType())
+            .serviceItemId(order.getServiceItemId())
+            .serviceNameSnapshot(order.getServiceNameSnapshot())
+            .priceCents(order.getPriceCents())
+            .durationMinutesSnapshot(order.getDurationMinutesSnapshot())
             .address(order.getAddress())
             .notes(order.getNotes())
             .status(order.getStatus())
@@ -430,6 +489,7 @@ public class OrderService {
             .cancelledAt(order.getCancelledAt())
             .merchantAssignDeadline(order.getMerchantAssignDeadline())
             .workerAcceptDeadline(order.getWorkerAcceptDeadline())
+            .scheduledAt(order.getScheduledAt())
             .version(order.getVersion())
             .build();
     }

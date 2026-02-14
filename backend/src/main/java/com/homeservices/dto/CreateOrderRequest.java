@@ -1,6 +1,5 @@
 package com.homeservices.dto;
 
-import com.homeservices.domain.ServiceType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -8,11 +7,14 @@ import lombok.Data;
 @Data
 public class CreateOrderRequest {
 
-    @NotNull(message = "Service type is required")
-    private ServiceType serviceType;
+    @NotNull(message = "Service item is required")
+    private Long serviceItemId;
 
     @NotBlank(message = "Address is required")
     private String address;
 
     private String notes;
+
+    @NotBlank(message = "Scheduled appointment time is required")
+    private String scheduledAt;
 }

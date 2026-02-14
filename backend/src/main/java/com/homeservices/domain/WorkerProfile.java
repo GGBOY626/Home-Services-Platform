@@ -3,6 +3,7 @@ package com.homeservices.domain;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -26,4 +27,15 @@ public class WorkerProfile {
 
     @Column(name = "merchant_id", nullable = false)
     private UUID merchantId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "availability", nullable = false, length = 20, columnDefinition = "VARCHAR(20)")
+    @Builder.Default
+    private WorkerAvailability availability = WorkerAvailability.OFFLINE;
+
+    @Column(name = "last_seen_at")
+    private Instant lastSeenAt;
+
+    @Column(name = "updated_at")
+    private Instant updatedAt;
 }

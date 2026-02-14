@@ -15,7 +15,11 @@ import java.util.UUID;
     @Index(name = "idx_order_merchant_status", columnList = "merchant_id, status"),
     @Index(name = "idx_order_worker_status", columnList = "worker_id, status"),
     @Index(name = "idx_order_merchant_assign_deadline", columnList = "merchant_assign_deadline"),
-    @Index(name = "idx_order_worker_accept_deadline", columnList = "worker_accept_deadline")
+    @Index(name = "idx_order_worker_accept_deadline", columnList = "worker_accept_deadline"),
+    @Index(name = "idx_order_service_item", columnList = "service_item_id"),
+    @Index(name = "idx_order_scheduled_at", columnList = "scheduled_at"),
+    @Index(name = "idx_order_merchant_scheduled", columnList = "merchant_id, scheduled_at"),
+    @Index(name = "idx_order_worker_scheduled", columnList = "worker_id, scheduled_at")
 })
 @Getter
 @Setter
@@ -28,9 +32,17 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "service_type", nullable = false, length = 50)
-    private ServiceType serviceType;
+    @Column(name = "service_item_id", nullable = false)
+    private Long serviceItemId;
+
+    @Column(name = "service_name_snapshot", nullable = false, length = 255)
+    private String serviceNameSnapshot;
+
+    @Column(name = "price_cents", nullable = false)
+    private Integer priceCents;
+
+    @Column(name = "duration_minutes_snapshot", nullable = false)
+    private Integer durationMinutesSnapshot;
 
     @Column(nullable = false, length = 500)
     private String address;
@@ -74,6 +86,9 @@ public class Order {
 
     @Column(name = "worker_accept_deadline")
     private Instant workerAcceptDeadline;
+
+    @Column(name = "scheduled_at", nullable = false)
+    private Instant scheduledAt;
 
     @Version
     @Column(name = "version", nullable = false)

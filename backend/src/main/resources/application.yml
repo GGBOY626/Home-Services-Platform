@@ -37,3 +37,6 @@ app:
   dispatch:
     merchant-assign-ttl-minutes: 10
     worker-accept-ttl-minutes: 5
+  scheduling:
+    min-hours-ahead: 1
+    max-days-ahead: 60

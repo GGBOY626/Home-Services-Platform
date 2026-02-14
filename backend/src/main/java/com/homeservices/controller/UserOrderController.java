@@ -5,6 +5,7 @@ import com.homeservices.dto.CancelRequest;
 import com.homeservices.dto.CreateOrderRequest;
 import com.homeservices.dto.OrderResponse;
 import com.homeservices.dto.OrderStatusHistoryItem;
+import com.homeservices.dto.RescheduleRequest;
 import com.homeservices.repository.OrderRepository;
 import com.homeservices.security.JwtPrincipal;
 import com.homeservices.service.OrderService;
@@ -75,6 +76,19 @@ public class UserOrderController {
             return ResponseEntity.notFound().build();
         }
         OrderResponse response = orderService.cancelByUser(id, request != null ? request.getReason() : null, principal);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/reschedule")
+    @Operation(summary = "Reschedule appointment time (only when PLACED)")
+    public ResponseEntity<OrderResponse> reschedule(@PathVariable UUID id,
+                                                     @Valid @RequestBody RescheduleRequest request,
+                                                     @AuthenticationPrincipal JwtPrincipal principal) {
+        Order order = orderRepository.findById(id).orElse(null);
+        if (order == null || !order.getCreatedBy().equals(principal.id())) {
+            return ResponseEntity.notFound().build();
+        }
+        OrderResponse response = orderService.reschedule(id, request.getScheduledAt(), principal);
         return ResponseEntity.ok(response);
     }
 

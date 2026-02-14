@@ -1,5 +1,6 @@
 package com.homeservices.service;
 
+import com.homeservices.domain.WorkerProfile;
 import com.homeservices.repository.MerchantProfileRepository;
 import com.homeservices.repository.WorkerProfileRepository;
 import com.homeservices.security.JwtPrincipal;
@@ -23,6 +24,10 @@ public class CurrentUserService {
 
     public Optional<UUID> getWorkerId(JwtPrincipal principal) {
         return workerProfileRepository.findByAccountId(principal.id())
-            .map(w -> w.getId());
+            .map(WorkerProfile::getId);
+    }
+
+    public Optional<WorkerProfile> getWorkerProfile(JwtPrincipal principal) {
+        return workerProfileRepository.findByAccountId(principal.id());
     }
 }
