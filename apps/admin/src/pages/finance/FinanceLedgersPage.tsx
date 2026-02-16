@@ -27,7 +27,10 @@ export function FinanceLedgersPage() {
     const statusParam = status ? `&status=${status}` : '';
     api<{ content: PayoutLedgerDTO[] }>(`/admin/finance/ledgers?from=${from}&to=${to}${statusParam}&page=0&size=100`)
       .then((p) => setLedgers(p.content || []))
-      .catch((err) => addToast('error', 'Failed to load ledgers', err.message))
+      .catch((err) => {
+        if (err?.message === 'Unauthorized') return;
+        addToast('error', 'Failed to load ledgers', err.message);
+      })
       .finally(() => setLoading(false));
   };
 

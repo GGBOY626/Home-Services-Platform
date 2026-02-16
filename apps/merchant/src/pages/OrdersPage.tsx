@@ -38,7 +38,10 @@ export function OrdersPage() {
         setOrders(ordersRes.content);
         setWorkers(Array.isArray(workersRes) ? workersRes : []);
       })
-      .catch((err) => addToast('error', 'Failed to load', err.message))
+      .catch((err) => {
+        if (err?.message === 'Unauthorized') return;
+        addToast('error', 'Failed to load', err.message);
+      })
       .finally(() => setLoading(false));
   }, [api, addToast]);
 

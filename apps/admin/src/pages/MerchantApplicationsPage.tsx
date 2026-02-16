@@ -67,7 +67,10 @@ export function MerchantApplicationsPage() {
     q.set('size', '100');
     api<{ content: MerchantApplicationDTO[] }>(`/admin/applications/merchants?${q.toString()}`)
       .then((data) => setItems(data.content))
-      .catch((err) => addToast('error', 'Failed to load', err.message))
+      .catch((err) => {
+        if (err?.message === 'Unauthorized') return;
+        addToast('error', 'Failed to load', err.message);
+      })
       .finally(() => setLoading(false));
   }, [statusParam, api, addToast]);
 
@@ -79,6 +82,7 @@ export function MerchantApplicationsPage() {
           setTempPassword(null);
         })
         .catch((err) => {
+          if (err?.message === 'Unauthorized') return;
           addToast('error', 'Failed to load', err.message);
           setSelected(null);
         });

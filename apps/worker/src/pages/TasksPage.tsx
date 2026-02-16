@@ -33,7 +33,10 @@ export function TasksPage() {
         setOrders(ordersRes.content);
         setProfile(meRes);
       })
-      .catch((err) => addToast('error', 'Failed to load', err.message))
+      .catch((err) => {
+        if (err?.message === 'Unauthorized') return;
+        addToast('error', 'Failed to load', err.message);
+      })
       .finally(() => setLoading(false));
   }, [api, addToast]);
 
@@ -91,26 +94,26 @@ export function TasksPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-12">
-        <p className="text-neutral-500">Loading…</p>
+        <p className="text-[var(--app-text-muted)]">Loading…</p>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
+    <div className="mx-auto max-w-2xl px-4 py-6">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold text-neutral-900">Current Task</h1>
+        <h1 className="text-xl font-bold text-[var(--app-text)]">Current Task</h1>
         <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-neutral-600">Availability</span>
-          <div className="flex rounded-lg border border-neutral-200 bg-neutral-50 p-0.5">
+          <span className="text-xs font-semibold text-[var(--app-text-muted)] uppercase tracking-wider">Availability</span>
+          <div className="flex rounded-xl border-2 border-[var(--app-border)] bg-[var(--app-surface)] p-1">
             <button
               type="button"
               onClick={() => handleSetAvailability('ONLINE')}
               disabled={availabilityLoading}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+              className={`rounded-lg px-4 py-2 text-sm font-bold transition-all ${
                 availability === 'ONLINE'
-                  ? 'bg-white text-neutral-900 shadow-sm'
-                  : 'text-neutral-600 hover:text-neutral-900'
+                  ? 'bg-[var(--app-online)] text-white shadow-md'
+                  : 'text-[var(--app-text-muted)] hover:text-[var(--app-text)]'
               }`}
             >
               ONLINE
@@ -119,16 +122,15 @@ export function TasksPage() {
               type="button"
               onClick={() => handleSetAvailability('OFFLINE')}
               disabled={availabilityLoading}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+              className={`rounded-lg px-4 py-2 text-sm font-bold transition-all ${
                 availability === 'OFFLINE'
-                  ? 'bg-white text-neutral-900 shadow-sm'
-                  : 'text-neutral-600 hover:text-neutral-900'
+                  ? 'bg-[var(--app-offline)] text-[var(--app-text)] shadow-md'
+                  : 'text-[var(--app-text-muted)] hover:text-[var(--app-text)]'
               }`}
             >
               OFFLINE
             </button>
           </div>
-          <span className="text-xs text-neutral-500">({availability})</span>
         </div>
       </div>
       {current ? (
@@ -143,30 +145,31 @@ export function TasksPage() {
           primaryLoading={actionLoading}
         />
       ) : (
-        <Card className="rounded-2xl border-neutral-200">
-          <CardContent className="py-12 text-center text-neutral-500 text-lg">
-            No tasks assigned
+        <Card className="rounded-xl border-[var(--app-border)] bg-[var(--app-surface)]">
+          <CardContent className="py-16 text-center text-[var(--app-text-muted)]">
+            <p className="text-lg font-medium">No tasks assigned</p>
+            <p className="mt-1 text-sm">You'll see new jobs here when your merchant assigns them.</p>
           </CardContent>
         </Card>
       )}
 
       {orders.length > 1 && (
         <>
-          <h2 className="mt-10 mb-4 text-xl font-semibold text-neutral-900">All Assigned</h2>
-          <ul className="space-y-4">
+          <h2 className="mt-10 mb-4 text-base font-semibold text-[var(--app-text)]">All Assigned</h2>
+          <ul className="space-y-3">
             {orders.map((order) => (
               <li key={order.id}>
                 <Card
-                  className="rounded-2xl border-neutral-200 cursor-pointer hover:border-neutral-300 transition"
+                  className="rounded-xl border-[var(--app-border)] bg-[var(--app-surface)] cursor-pointer hover:border-[var(--app-primary)] transition-colors"
                   onClick={() => navigate(`/orders/${order.id}`)}
                 >
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start">
                       <div>
-                        <p className="font-medium text-neutral-900">{order.address}</p>
-                        <p className="text-sm text-neutral-500">{order.status}</p>
+                        <p className="font-medium text-[var(--app-text)]">{order.address}</p>
+                        <p className="text-sm text-[var(--app-text-muted)]">{order.status}</p>
                       </div>
-                      <span className="text-sm text-neutral-500">View →</span>
+                      <span className="text-sm font-medium text-[var(--app-primary)]">View →</span>
                     </div>
                   </CardContent>
                 </Card>

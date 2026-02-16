@@ -21,7 +21,10 @@ export function DashboardPage() {
   useEffect(() => {
     api<PageRes>('/merchant/orders?page=0&size=10')
       .then((data) => setOrders(data.content))
-      .catch((err) => addToast('error', 'Failed to load orders', err.message))
+      .catch((err) => {
+        if (err?.message === 'Unauthorized') return;
+        addToast('error', 'Failed to load orders', err.message);
+      })
       .finally(() => setLoading(false));
   }, [api, addToast]);
 

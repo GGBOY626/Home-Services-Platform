@@ -129,7 +129,10 @@ export function AuditPage() {
         setTotalElements(data.totalElements);
         setTotalPages(data.totalPages);
       })
-      .catch((err) => addToast('error', 'Failed to load audit events', err.message))
+      .catch((err) => {
+        if (err?.message === 'Unauthorized') return;
+        addToast('error', 'Failed to load audit events', err.message);
+      })
       .finally(() => setLoading(false));
   }, [from, to, actionParam, entityParam, keywordParam, requestIdParam, pageParam, api, addToast]);
 
@@ -140,6 +143,7 @@ export function AuditPage() {
         api<AuditEventResponse>(`/admin/audit/events/${id}`)
           .then(setSelectedEvent)
           .catch((err) => {
+            if (err?.message === 'Unauthorized') return;
             addToast('error', 'Failed to load event', err.message);
             setSelectedEvent(null);
           });
@@ -154,6 +158,7 @@ export function AuditPage() {
       api<AuditEventResponse[]>(`/admin/audit/requests/${encodeURIComponent(traceRequestId)}`)
         .then(setTraceEvents)
         .catch((err) => {
+          if (err?.message === 'Unauthorized') return;
           addToast('error', 'Failed to load trace', err.message);
           setTraceEvents(null);
         });

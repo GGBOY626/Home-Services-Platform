@@ -48,7 +48,10 @@ export function ComplaintsPage() {
     q.set('size', '100');
     api<PageRes>(`/admin/complaints?${q.toString()}`)
       .then((data) => setComplaints(data.content))
-      .catch((err) => addToast('error', 'Failed to load complaints', err.message))
+      .catch((err) => {
+        if (err?.message === 'Unauthorized') return;
+        addToast('error', 'Failed to load complaints', err.message);
+      })
       .finally(() => setLoading(false));
   }, [statusParam, categoryParam, api, addToast]);
 

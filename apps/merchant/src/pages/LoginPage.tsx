@@ -28,9 +28,9 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
-      <Card className="w-full max-w-md rounded-2xl border-neutral-200 shadow-sm">
-        <CardHeader><CardTitle>Sign in</CardTitle></CardHeader>
+    <div className="flex min-h-screen items-center justify-center bg-[var(--app-bg)] px-4">
+      <Card className="w-full max-w-md rounded-xl border-[var(--app-border)] bg-[var(--app-surface)] shadow-sm">
+        <CardHeader><CardTitle className="text-[var(--app-text)]">Sign in</CardTitle></CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -41,9 +41,9 @@ export function LoginPage() {
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</Button>
-            <p className="mt-4 text-center text-sm text-neutral-600">
-              Want to join as a merchant? <Link to="/apply" className="font-medium text-neutral-900 hover:underline">Apply here</Link>
+            <Button type="submit" className="w-full bg-[var(--app-primary)] hover:bg-[var(--app-primary-hover)] text-white" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</Button>
+            <p className="mt-4 text-center text-sm text-[var(--app-text-muted)]">
+              Want to join as a merchant? <Link to="/apply" className="font-medium text-[var(--app-primary)] hover:underline">Apply here</Link>
             </p>
           </form>
         </CardContent>

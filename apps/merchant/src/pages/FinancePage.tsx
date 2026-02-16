@@ -33,7 +33,10 @@ export function FinancePage() {
         setSummary(s);
         setLedgers(p.content || []);
       })
-      .catch((err) => addToast('error', 'Failed to load finance data', err.message))
+      .catch((err) => {
+        if (err?.message === 'Unauthorized') return;
+        addToast('error', 'Failed to load finance data', err.message);
+      })
       .finally(() => setLoading(false));
   };
 

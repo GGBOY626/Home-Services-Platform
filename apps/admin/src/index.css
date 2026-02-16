@@ -1,4 +1,29 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-body { margin: 0; font-family: system-ui, sans-serif; -webkit-font-smoothing: antialiased; background: #fafafa; }
+
+:root {
+  --app-bg: #f1f5f9;
+  --app-surface: #ffffff;
+  --app-surface-alt: #f8fafc;
+  --app-border: #e2e8f0;
+  --app-text: #1e293b;
+  --app-text-muted: #64748b;
+  --app-primary: #334155;
+  --app-primary-hover: #1e293b;
+  --app-accent: #475569;
+  --app-status-success: #0f766e;
+  --app-status-warning: #b45309;
+  --app-status-danger: #b91c1c;
+  --app-status-info: #1e40af;
+  --app-nav-active: #f1f5f9;
+  --app-nav-hover: #f8fafc;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: var(--app-bg);
+  color: var(--app-text);
+}

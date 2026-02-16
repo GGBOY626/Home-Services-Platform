@@ -40,7 +40,10 @@ export function ServicesPage() {
         setLocalPrice(price);
         setLocalActive(active);
       })
-      .catch((err) => addToast('error', 'Failed to load services', err.message))
+      .catch((err) => {
+        if (err?.message === 'Unauthorized') return;
+        addToast('error', 'Failed to load services', err.message);
+      })
       .finally(() => setLoading(false));
   }, [api, addToast]);
 

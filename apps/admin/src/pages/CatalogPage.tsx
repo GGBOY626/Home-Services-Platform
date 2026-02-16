@@ -28,7 +28,10 @@ export function CatalogPage() {
         setCategories(cats);
         setItems(its);
       })
-      .catch((err) => addToast('error', 'Failed to load catalog', err.message))
+      .catch((err) => {
+        if (err?.message === 'Unauthorized') return;
+        addToast('error', 'Failed to load catalog', err.message);
+      })
       .finally(() => setLoading(false));
   };
 

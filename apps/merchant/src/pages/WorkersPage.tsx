@@ -16,7 +16,10 @@ export function WorkersPage() {
   useEffect(() => {
     api<WorkerSummary[]>('/merchant/workers')
       .then((data) => setWorkers(Array.isArray(data) ? data : []))
-      .catch((err) => addToast('error', 'Failed to load workers', err.message))
+      .catch((err) => {
+        if (err?.message === 'Unauthorized') return;
+        addToast('error', 'Failed to load workers', err.message);
+      })
       .finally(() => setLoading(false));
   }, [api, addToast]);
 

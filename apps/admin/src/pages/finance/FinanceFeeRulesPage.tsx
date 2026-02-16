@@ -24,7 +24,10 @@ export function FinanceFeeRulesPage() {
     setLoading(true);
     api<PlatformFeeRuleDTO[]>('/admin/finance/fee-rules')
       .then(setRules)
-      .catch((err) => addToast('error', 'Failed to load fee rules', err.message))
+      .catch((err) => {
+        if (err?.message === 'Unauthorized') return;
+        addToast('error', 'Failed to load fee rules', err.message);
+      })
       .finally(() => setLoading(false));
   };
 

@@ -51,7 +51,10 @@ export function RatingsPage() {
         setSummary(s);
         setRatings(p.content || []);
       })
-      .catch((err) => addToast('error', 'Failed to load ratings', err.message))
+      .catch((err) => {
+        if (err?.message === 'Unauthorized') return;
+        addToast('error', 'Failed to load ratings', err.message);
+      })
       .finally(() => setLoading(false));
   };
 

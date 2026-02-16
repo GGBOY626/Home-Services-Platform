@@ -21,18 +21,18 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
-    <div className="flex min-h-screen bg-neutral-50">
+    <div className="flex min-h-screen bg-[var(--app-bg)]">
       <aside
         className={`${
           sidebarOpen ? 'w-56' : 'w-16'
-        } flex flex-col border-r border-neutral-200 bg-white transition-[width] duration-200`}
+        } flex flex-col border-r border-[var(--app-border)] bg-[var(--app-surface)] transition-[width] duration-200`}
       >
-        <div className="flex h-14 items-center justify-between border-b border-neutral-200 px-4">
-          {sidebarOpen && <span className="font-semibold text-neutral-900">Merchant</span>}
+        <div className="flex h-14 items-center justify-between border-b border-[var(--app-border)] px-4">
+          {sidebarOpen && <span className="font-semibold text-[var(--app-text)]">Merchant</span>}
           <button
             type="button"
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="rounded-lg p-2 text-neutral-500 hover:bg-neutral-100"
+            className="rounded-lg p-2 text-[var(--app-text-muted)] hover:bg-[var(--app-nav-hover)]"
             aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
           >
             {sidebarOpen ? '←' : '→'}
@@ -46,7 +46,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                 key={path}
                 to={path}
                 className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
-                  active ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-600 hover:bg-neutral-50'
+                  active ? 'bg-[var(--app-nav-active)] text-[var(--app-text)]' : 'text-[var(--app-text-muted)] hover:bg-[var(--app-nav-hover)]'
                 }`}
               >
                 <span>{label.charAt(0)}</span>
@@ -56,7 +56,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         {sidebarOpen && (
-          <div className="border-t border-neutral-200 p-2">
+          <div className="border-t border-[var(--app-border)] p-2">
             <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => { logout(); navigate('/login'); }}>
               Log out
             </Button>
@@ -64,8 +64,8 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         )}
       </aside>
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="sticky top-0 z-10 flex h-14 items-center border-b border-neutral-200 bg-white px-6">
-          <h1 className="text-lg font-semibold text-neutral-900">Merchant Portal</h1>
+        <header className="sticky top-0 z-10 flex h-14 items-center border-b border-[var(--app-border)] bg-[var(--app-surface)] px-6">
+          <h1 className="text-lg font-semibold text-[var(--app-text)]">Merchant Portal</h1>
         </header>
         <main className="flex-1 p-6">{children}</main>
       </div>

@@ -30,8 +30,8 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
-      <Card className="w-full max-w-md rounded-2xl border-neutral-200 shadow-sm">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--app-bg)] px-4">
+      <Card className="w-full max-w-md rounded-2xl border-[var(--app-border)] bg-[var(--app-surface)] shadow-sm">
         <CardHeader>
           <CardTitle className="text-xl">Sign in</CardTitle>
         </CardHeader>
@@ -58,11 +58,11 @@ export function LoginPage() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full bg-[var(--app-cta)] hover:bg-[var(--app-cta-hover)] text-white" disabled={loading}>
               {loading ? 'Signing in…' : 'Sign in'}
             </Button>
-            <p className="mt-4 text-center text-sm text-neutral-600">
-              Don&apos;t have an account? <Link to="/register" className="font-medium text-neutral-900 hover:underline">Register</Link>
+            <p className="mt-4 text-center text-sm text-[var(--app-text-muted)]">
+              Don&apos;t have an account? <Link to="/register" className="font-medium text-[var(--app-text)] hover:underline">Register</Link>
             </p>
           </form>
         </CardContent>

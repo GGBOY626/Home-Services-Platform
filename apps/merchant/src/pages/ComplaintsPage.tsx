@@ -22,7 +22,10 @@ export function ComplaintsPage() {
   useEffect(() => {
     api<PageRes>('/merchant/complaints?page=0&size=100')
       .then((data) => setComplaints(data.content))
-      .catch((err) => addToast('error', 'Failed to load complaints', err.message))
+      .catch((err) => {
+        if (err?.message === 'Unauthorized') return;
+        addToast('error', 'Failed to load complaints', err.message);
+      })
       .finally(() => setLoading(false));
   }, [api, addToast]);
 

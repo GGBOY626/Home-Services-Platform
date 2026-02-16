@@ -11,7 +11,7 @@ const basename = (import.meta.env.VITE_BASE_PATH as string | undefined)?.replace
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter basename={basename}>
-      <Toaster>
+      <Toaster position="top-right">
         <AuthProvider>
           <App />
         </AuthProvider>

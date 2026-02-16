@@ -21,7 +21,10 @@ export function FinanceSummaryPage() {
     setLoading(true);
     api<FinanceSummaryDTO>(`/admin/finance/summary?from=${from}&to=${to}`)
       .then(setSummary)
-      .catch((err) => addToast('error', 'Failed to load summary', err.message))
+      .catch((err) => {
+        if (err?.message === 'Unauthorized') return;
+        addToast('error', 'Failed to load summary', err.message);
+      })
       .finally(() => setLoading(false));
   }, [api, addToast, from, to]);
 

@@ -49,7 +49,10 @@ export function HomePage() {
   useEffect(() => {
     api<CategoryWithItemsDTO[]>('/public/categories')
       .then(setCategories)
-      .catch(() => addToast('error', 'Failed to load services'))
+      .catch((err) => {
+      if (err?.message === 'Unauthorized') return;
+      addToast('error', 'Failed to load services');
+    })
       .finally(() => setCategoriesLoading(false));
   }, [api, addToast]);
 
@@ -230,7 +233,7 @@ export function HomePage() {
           <Button variant="outline" onClick={() => setBookOpen(false)} disabled={loading}>
             Back
           </Button>
-          <Button onClick={handlePlaceOrder} disabled={loading || !selectedItemId}>
+          <Button onClick={handlePlaceOrder} disabled={loading || !selectedItemId} className="bg-[var(--app-cta)] hover:bg-[var(--app-cta-hover)] text-white">
             {loading ? 'Placing order…' : 'Place Order'}
           </Button>
         </DialogFooter>

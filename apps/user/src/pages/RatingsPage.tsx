@@ -19,7 +19,10 @@ export function RatingsPage() {
   useEffect(() => {
     api<PageRes>('/user/ratings?page=0&size=50')
       .then((data) => setRatings(data.content))
-      .catch((err) => addToast('error', 'Failed to load ratings', err.message))
+      .catch((err) => {
+        if (err?.message === 'Unauthorized') return;
+        addToast('error', 'Failed to load ratings', err.message);
+      })
       .finally(() => setLoading(false));
   }, [api, addToast]);
 

@@ -28,9 +28,9 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
-      <Card className="w-full max-w-md rounded-2xl border-neutral-200 shadow-sm">
-        <CardHeader><CardTitle>Sign in</CardTitle></CardHeader>
+    <div className="flex min-h-screen items-center justify-center bg-[var(--app-bg)] px-4">
+      <Card className="w-full max-w-md rounded-lg border-[var(--app-border)] shadow-sm bg-[var(--app-surface)]">
+        <CardHeader><CardTitle className="text-[var(--app-text)]">Sign in</CardTitle></CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -41,7 +41,7 @@ export function LoginPage() {
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</Button>
+            <Button type="submit" className="w-full bg-[var(--app-primary)] hover:bg-[var(--app-primary-hover)]" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</Button>
           </form>
         </CardContent>
       </Card>

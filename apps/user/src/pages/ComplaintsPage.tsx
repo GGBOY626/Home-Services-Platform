@@ -20,7 +20,10 @@ export function ComplaintsPage() {
   useEffect(() => {
     api<PageRes>('/user/complaints?page=0&size=50')
       .then((data) => setComplaints(data.content))
-      .catch((err) => addToast('error', 'Failed to load complaints', err.message))
+      .catch((err) => {
+        if (err?.message === 'Unauthorized') return;
+        addToast('error', 'Failed to load complaints', err.message);
+      })
       .finally(() => setLoading(false));
   }, [api, addToast]);
 

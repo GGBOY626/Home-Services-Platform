@@ -71,7 +71,10 @@ export function WorkerApplicationsPage() {
     q.set('size', '100');
     api<{ content: WorkerApplicationDTO[] }>(`/admin/applications/workers?${q.toString()}`)
       .then((data) => setItems(data.content))
-      .catch((err) => addToast('error', 'Failed to load', err.message))
+      .catch((err) => {
+        if (err?.message === 'Unauthorized') return;
+        addToast('error', 'Failed to load', err.message);
+      })
       .finally(() => setLoading(false));
   }, [statusParam, api, addToast]);
 
@@ -89,6 +92,7 @@ export function WorkerApplicationsPage() {
           setTempPassword(null);
         })
         .catch((err) => {
+          if (err?.message === 'Unauthorized') return;
           addToast('error', 'Failed to load', err.message);
           setSelected(null);
         });

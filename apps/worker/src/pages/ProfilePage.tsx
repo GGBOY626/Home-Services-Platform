@@ -44,36 +44,36 @@ export function ProfilePage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 space-y-6">
-      <h1 className="mb-6 text-2xl font-semibold text-neutral-900">Profile</h1>
-      <Card className="rounded-2xl border-neutral-200 shadow-sm">
+    <div className="mx-auto max-w-2xl px-4 py-6 space-y-6">
+      <h1 className="mb-6 text-xl font-bold text-[var(--app-text)]">Profile</h1>
+      <Card className="rounded-xl border-[var(--app-border)] bg-[var(--app-surface)] shadow-sm">
         <CardContent className="p-6 space-y-4">
-          <p className="text-sm text-neutral-500">Role</p>
-          <p className="font-medium text-neutral-900">Worker</p>
-          <p className="text-sm text-neutral-500 mt-4">Merchant</p>
-          <p className="text-sm text-neutral-600">Assigned via platform</p>
+          <p className="text-sm text-[var(--app-text-muted)]">Role</p>
+          <p className="font-medium text-[var(--app-text)]">Worker</p>
+          <p className="text-sm text-[var(--app-text-muted)] mt-4">Merchant</p>
+          <p className="text-sm text-[var(--app-text-muted)]">Assigned via platform</p>
           <Button variant="outline" className="mt-4" onClick={() => { logout(); navigate('/login'); }}>
             Log out
           </Button>
         </CardContent>
       </Card>
-      <Card className="rounded-2xl border-neutral-200 shadow-sm">
+      <Card className="rounded-xl border-[var(--app-border)] bg-[var(--app-surface)] shadow-sm">
         <CardContent className="p-6">
-          <h2 className="text-lg font-semibold text-neutral-900 mb-4">Change password</h2>
+          <h2 className="text-lg font-semibold text-[var(--app-text)] mb-4">Change password</h2>
           <form onSubmit={handleChangePassword} className="space-y-4 max-w-sm">
             <div className="space-y-2">
-              <Label htmlFor="current-pw">Current password</Label>
+              <Label htmlFor="current-pw" className="text-[var(--app-text)]">Current password</Label>
               <Input id="current-pw" type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required autoComplete="current-password" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="new-pw">New password</Label>
+              <Label htmlFor="new-pw" className="text-[var(--app-text)]">New password</Label>
               <Input id="new-pw" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={8} autoComplete="new-password" placeholder="At least 8 characters" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirm-pw">Confirm new password</Label>
+              <Label htmlFor="confirm-pw" className="text-[var(--app-text)]">Confirm new password</Label>
               <Input id="confirm-pw" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} autoComplete="new-password" />
             </div>
-            <Button type="submit" disabled={loading}>{loading ? 'Changing…' : 'Change password'}</Button>
+            <Button type="submit" className="bg-[var(--app-cta)] hover:bg-[var(--app-cta-hover)] text-white" disabled={loading}>{loading ? 'Changing…' : 'Change password'}</Button>
           </form>
         </CardContent>
       </Card>

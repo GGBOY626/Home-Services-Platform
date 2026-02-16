@@ -125,7 +125,7 @@ export function OrderDetailPage() {
   if (loading || !order) {
     return (
       <div className="flex justify-center py-12">
-        <p className="text-neutral-500">Loading…</p>
+        <p className="text-[var(--app-text-muted)]">Loading…</p>
       </div>
     );
   }
@@ -135,38 +135,38 @@ export function OrderDetailPage() {
   const showProofReadOnly = order.status === 'COMPLETED' && proof;
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
-      <Card className="rounded-2xl border-neutral-200 shadow-sm">
+    <div className="mx-auto max-w-2xl px-4 py-6">
+      <Card className="rounded-xl border-[var(--app-border)] bg-[var(--app-surface)] shadow-sm">
         <CardContent className="p-6">
           <div className="flex items-center gap-2 flex-wrap mb-4">
             <StatusBadge status={order.status} />
-            <span className="text-lg font-medium text-neutral-700">{order.serviceNameSnapshot}</span>
+            <span className="text-lg font-medium text-[var(--app-text-muted)]">{order.serviceNameSnapshot}</span>
           </div>
-          <p className="text-sm text-neutral-600">{formatCurrency(order.priceCents)} · {order.durationMinutesSnapshot} min</p>
-          <p className="text-2xl font-bold text-neutral-900">{formatScheduled(order.scheduledAt)}</p>
-          <p className="mt-1 text-lg font-medium text-neutral-700">{order.address}</p>
+          <p className="text-sm text-[var(--app-text-muted)]">{formatCurrency(order.priceCents)} · {order.durationMinutesSnapshot} min</p>
+          <p className="text-2xl font-bold text-[var(--app-text)]">{formatScheduled(order.scheduledAt)}</p>
+          <p className="mt-1 text-lg font-semibold text-[var(--app-text)]">{order.address}</p>
           {order.notes && (
-            <p className="mt-3 text-neutral-600"><span className="font-medium">Notes:</span> {order.notes}</p>
+            <p className="mt-3 text-[var(--app-text-muted)]"><span className="font-medium text-[var(--app-text)]">Notes:</span> {order.notes}</p>
           )}
-          <p className="mt-4 text-sm text-neutral-500">Created {formatDate(order.createdAt)}</p>
+          <p className="mt-4 text-sm text-[var(--app-text-muted)]">Created {formatDate(order.createdAt)}</p>
 
           {canComplete && (
-            <div className="mt-6 space-y-4 border-t border-neutral-200 pt-6">
+            <div className="mt-6 space-y-4 border-t border-[var(--app-border)] pt-6">
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1">Completion notes (required, min 10 chars)</label>
+                <label className="block text-sm font-medium text-[var(--app-text)] mb-1">Completion notes (required, min 10 chars)</label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Describe what was done, any issues, etc. Type at least 10 characters to enable the submit button."
                   rows={4}
-                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
+                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[var(--app-primary)]"
                 />
                 {notes.trim().length > 0 && notes.trim().length < 10 && (
                   <p className="mt-1 text-xs text-amber-600">{10 - notes.trim().length} more character(s) needed</p>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1">Attachments (optional, max 6 images)</label>
+                <label className="block text-sm font-medium text-[var(--app-text)] mb-1">Attachments (optional, max 6 images)</label>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -182,11 +182,11 @@ export function OrderDetailPage() {
                   <div className="mt-2 space-y-2">
                     {files.map((f, idx) => (
                       <div key={idx} className="flex items-center gap-2 text-sm">
-                        <span className="text-neutral-600 truncate flex-1">{f.name}</span>
+                        <span className="text-[var(--app-text)] truncate flex-1">{f.name}</span>
                         <select
                           value={labels[idx] || ''}
                           onChange={(e) => setLabels((p) => p.map((l, i) => (i === idx ? e.target.value : l)))}
-                          className="rounded border border-neutral-300 px-2 py-0.5 text-xs"
+                          className="rounded border border-neutral-300 bg-white px-2 py-0.5 text-xs text-neutral-900"
                         >
                           {LABELS.map((l) => (
                             <option key={l} value={l}>{l || '—'}</option>
@@ -198,16 +198,16 @@ export function OrderDetailPage() {
                   </div>
                 )}
               </div>
-              <Button size="lg" onClick={handleCompleteWithProof} disabled={actionLoading || notes.trim().length < 10}>
+              <Button size="lg" className="bg-[var(--app-cta)] hover:bg-[var(--app-cta-hover)] text-white" onClick={handleCompleteWithProof} disabled={actionLoading || notes.trim().length < 10}>
                 {actionLoading ? 'Submitting…' : 'Submit Proof & Complete'}
               </Button>
             </div>
           )}
 
           {showProofReadOnly && (
-            <div className="mt-6 border-t border-neutral-200 pt-6">
-              <p className="text-sm font-medium text-neutral-700 mb-2">Completion proof</p>
-              <p className="text-neutral-600 text-sm whitespace-pre-wrap">{proof.completionNotes}</p>
+            <div className="mt-6 border-t border-[var(--app-border)] pt-6">
+              <p className="text-sm font-medium text-[var(--app-text)] mb-2">Completion proof</p>
+              <p className="text-[var(--app-text-muted)] text-sm whitespace-pre-wrap">{proof.completionNotes}</p>
               {proof.attachments.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
                   {proof.attachments.map((a, idx) => (
@@ -223,7 +223,7 @@ export function OrderDetailPage() {
           <div className="mt-6 flex flex-wrap gap-3">
             {canAccept && (
               <>
-                <Button size="lg" onClick={handleAccept} disabled={actionLoading}>
+                <Button size="lg" className="bg-[var(--app-cta)] hover:bg-[var(--app-cta-hover)] text-white" onClick={handleAccept} disabled={actionLoading}>
                   {actionLoading ? 'Processing…' : 'Accept Job'}
                 </Button>
                 <Button variant="destructive" size="lg" onClick={() => setRejectOpen(true)} disabled={actionLoading}>

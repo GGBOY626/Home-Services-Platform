@@ -24,21 +24,21 @@ export function TaskCard({
   secondaryLoading = false,
 }: TaskCardProps) {
   return (
-    <Card className="rounded-2xl border-neutral-200 shadow-md">
+    <Card className="rounded-xl border-2 border-[var(--app-border)] bg-[var(--app-surface)] shadow-lg">
       <CardContent className="p-6">
         <div className="mb-4">
           <StatusBadge status={order.status} />
-          <p className="mt-1 text-sm text-neutral-600">{order.serviceNameSnapshot} · {formatCurrency(order.priceCents)} · {order.durationMinutesSnapshot} min</p>
+          <p className="mt-1 text-sm text-[var(--app-text-muted)]">{order.serviceNameSnapshot} · {formatCurrency(order.priceCents)} · {order.durationMinutesSnapshot} min</p>
         </div>
-        <p className="text-2xl font-bold text-neutral-900 leading-tight">{formatScheduled(order.scheduledAt)}</p>
-        <p className="mt-1 text-lg font-medium text-neutral-700 leading-tight">{order.address}</p>
+        <p className="text-2xl font-bold text-[var(--app-text)] leading-tight">{formatScheduled(order.scheduledAt)}</p>
+        <p className="mt-1 text-lg font-semibold text-[var(--app-text)] leading-tight">{order.address}</p>
         {order.notes && (
-          <p className="mt-3 text-base text-neutral-600">
-            <span className="font-medium">Notes:</span> {order.notes}
+          <p className="mt-3 text-base text-[var(--app-text-muted)]">
+            <span className="font-medium text-[var(--app-text)]">Notes:</span> {order.notes}
           </p>
         )}
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-          <Button size="lg" className="flex-1 min-h-12 text-base" onClick={onPrimary} disabled={primaryLoading}>
+          <Button size="lg" className="flex-1 min-h-12 text-base bg-[var(--app-cta)] hover:bg-[var(--app-cta-hover)] text-white border-0" onClick={onPrimary} disabled={primaryLoading}>
             {primaryLoading ? 'Please wait…' : primaryLabel}
           </Button>
           {secondaryLabel && onSecondary && (
