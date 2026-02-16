@@ -1,0 +1,81 @@
+############################
+# OS / Editor
+############################
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+############################
+# Node / Frontend
+############################
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Frontend build output
+dist/
+build/
+**/dist/
+**/build/
+
+############################
+# Java / Backend
+############################
+target/
+**/target/
+*.log
+hs_err_pid*
+
+############################
+# Environment & Secrets
+############################
+.env
+.env.*
+!.env.example
+!.env.prod.example
+
+############################
+# Docker
+############################
+docker-data/
+docker-volume/
+**/docker-data/
+**/docker-volume/
+
+############################
+# Uploads / Runtime data
+############################
+uploads/
+**/uploads/
+files/
+**/files/
+logs/
+**/logs/
+
+############################
+# Database
+############################
+*.db
+*.sqlite
+*.sqlite3
+
+############################
+# Temporary / Cache
+############################
+.tmp/
+.cache/
+coverage/
+
+############################
+# Misc
+############################
+*.swp
+*.swo
+*.bak

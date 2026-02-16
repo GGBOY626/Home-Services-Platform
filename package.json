@@ -1,0 +1,20 @@
+{
+  "name": "home-services-platform",
+  "private": true,
+  "scripts": {
+    "dev:admin": "pnpm --filter admin dev",
+    "dev:merchant": "pnpm --filter merchant dev",
+    "dev:user": "pnpm --filter user dev",
+    "dev:worker": "pnpm --filter worker dev",
+    "build": "pnpm -r build",
+    "build:admin": "pnpm --filter admin build",
+    "build:merchant": "pnpm --filter merchant build",
+    "build:user": "pnpm --filter user build",
+    "build:worker": "pnpm --filter worker build",
+    "build:all": "pnpm run build:user && pnpm run build:admin && pnpm run build:merchant && pnpm run build:worker"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  },
+  "packageManager": "pnpm@9.0.0"
+}

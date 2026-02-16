@@ -1,0 +1,8 @@
+node_modules
+.git
+*.md
+.env.prod
+.env
+.DS_Store
+backend/target
+uploads
