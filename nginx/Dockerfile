@@ -13,7 +13,10 @@ COPY apps/admin/package.json ./apps/admin/
 COPY apps/merchant/package.json ./apps/merchant/
 COPY apps/worker/package.json ./apps/worker/
 
-RUN pnpm install --frozen-lockfile
+ENV NODE_ENV=development
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+RUN pnpm install --frozen-lockfile --prod=false
 
 COPY packages/shared ./packages/shared
 COPY packages/ui ./packages/ui
@@ -22,12 +25,16 @@ COPY apps/admin ./apps/admin
 COPY apps/merchant ./apps/merchant
 COPY apps/worker ./apps/worker
 
-# Build each app with production base path and relative API
+# Re-run install so app node_modules are linked (COPY overwrote the dirs pnpm had linked)
+RUN pnpm install --frozen-lockfile --prod=false
+
+# Build each app: cwd = app dir (so index.html + config resolve), vite binary from root node_modules
 ENV VITE_API_BASE=/api
-RUN VITE_BASE_PATH=/user/   pnpm --filter user build
-RUN VITE_BASE_PATH=/admin/  pnpm --filter admin build
-RUN VITE_BASE_PATH=/merchant/ pnpm --filter merchant build
-RUN VITE_BASE_PATH=/worker/  pnpm --filter worker build
+RUN cd /app/apps/user    && VITE_BASE_PATH=/user/    ../../node_modules/.bin/vite build
+RUN cd /app/apps/admin   && VITE_BASE_PATH=/admin/   ../../node_modules/.bin/vite build
+RUN cd /app/apps/merchant && VITE_BASE_PATH=/merchant/ ../../node_modules/.bin/vite build
+RUN cd /app/apps/worker  && VITE_BASE_PATH=/worker/  ../../node_modules/.bin/vite build
+
 
 # Stage 2: nginx with built assets
 FROM nginx:alpine
