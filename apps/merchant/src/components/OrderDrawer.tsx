@@ -1,9 +1,9 @@
 import { Drawer } from '@home-services/ui';
-import { Card, CardContent } from '@home-services/ui';
 import { Button } from '@home-services/ui';
 import { StatusBadge } from './StatusBadge';
+import { CompletionProofSection } from './CompletionProofSection';
 import { formatDate, formatCurrency, formatScheduled } from '../lib/format';
-import type { Order } from '@home-services/shared';
+import type { Order, CompletionProof } from '@home-services/shared';
 import type { WorkerSummary } from '@home-services/shared';
 
 export interface OrderDrawerProps {
@@ -14,6 +14,7 @@ export interface OrderDrawerProps {
   onAssignWorker: (workerId: string) => void;
   onRejectClick: () => void;
   assignLoading?: boolean;
+  fetchProof?: (orderId: string) => Promise<CompletionProof | null>;
 }
 
 export function OrderDrawer({
@@ -24,6 +25,7 @@ export function OrderDrawer({
   onAssignWorker,
   onRejectClick,
   assignLoading = false,
+  fetchProof,
 }: OrderDrawerProps) {
   if (!order) return null;
 
@@ -71,6 +73,14 @@ export function OrderDrawer({
           <p className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
             Waiting for worker acceptance
           </p>
+        )}
+
+        {fetchProof && (order.status === 'COMPLETED' || order.status === 'CLOSED') && (
+          <CompletionProofSection
+            orderId={order.id}
+            status={order.status}
+            fetchProof={fetchProof}
+          />
         )}
       </div>
     </Drawer>

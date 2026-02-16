@@ -7,10 +7,14 @@ import { Drawer } from '@home-services/ui';
 import { Button } from '@home-services/ui';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { DevToolsAccordion } from '../components/DevToolsAccordion';
+import { CompletionProofSection } from '../components/CompletionProofSection';
 import { formatDate, formatCurrency, formatScheduled } from '../lib/format';
-import type { Order } from '@home-services/shared';
+import type { Order, CompletionProof } from '@home-services/shared';
 
-const MERCHANT_ID = 'b0000000-0000-0000-0000-000000000001';
+interface MerchantSummary {
+  id: string;
+  displayName: string;
+}
 
 interface PageRes {
   content: Order[];
@@ -26,6 +30,9 @@ export function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [assignLoading, setAssignLoading] = useState(false);
+  const [eligibleMerchants, setEligibleMerchants] = useState<MerchantSummary[]>([]);
+  const [eligibleMerchantsLoading, setEligibleMerchantsLoading] = useState(false);
+  const [selectedMerchantId, setSelectedMerchantId] = useState<string>('');
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState('');
@@ -51,15 +58,40 @@ export function OrdersPage() {
     );
   }
 
-  const closeDrawer = () => setSearchParams({});
+  const closeDrawer = () => {
+    setSearchParams({});
+    setSelectedMerchantId('');
+    setEligibleMerchants([]);
+  };
+
+  useEffect(() => {
+    if (!openId || !selectedOrder) return;
+    if (selectedOrder.status !== 'PLACED') return;
+    setEligibleMerchantsLoading(true);
+    api<MerchantSummary[]>(`/admin/orders/${openId}/eligible-merchants`)
+      .then((list) => {
+        setEligibleMerchants(list);
+        setSelectedMerchantId(list.length > 0 ? list[0].id : '');
+      })
+      .catch(() => setEligibleMerchants([]))
+      .finally(() => setEligibleMerchantsLoading(false));
+  }, [openId, selectedOrder?.id, selectedOrder?.status, api]);
+
+  const fetchProof = async (orderId: string) => {
+    try {
+      return await api<CompletionProof>(`/admin/orders/${orderId}/completion-proof`);
+    } catch {
+      return null;
+    }
+  };
 
   const handleAssignMerchant = async () => {
-    if (!selectedOrder) return;
+    if (!selectedOrder || !selectedMerchantId) return;
     setAssignLoading(true);
     try {
       const updated = await api<Order>(`/admin/orders/${selectedOrder.id}/assign-merchant`, {
         method: 'POST',
-        body: JSON.stringify({ merchantId: MERCHANT_ID }),
+        body: JSON.stringify({ merchantId: selectedMerchantId }),
       });
       setOrders((prev) => prev.map((o) => (o.id === selectedOrder.id ? updated : o)));
       addToast('success', 'Merchant assigned');
@@ -215,14 +247,47 @@ export function OrdersPage() {
             <p className="text-sm text-neutral-500">Created {formatDate(selectedOrder.createdAt)}</p>
 
             {selectedOrder.status === 'PLACED' && (
-              <Button onClick={handleAssignMerchant} disabled={assignLoading}>
-                {assignLoading ? 'Assigning…' : 'Assign to Demo Merchant'}
-              </Button>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-1">Assign to merchant</label>
+                  {eligibleMerchantsLoading ? (
+                    <p className="text-sm text-neutral-500">Loading merchants…</p>
+                  ) : eligibleMerchants.length === 0 ? (
+                    <p className="text-sm text-amber-600">No merchants offer this service ({selectedOrder.serviceNameSnapshot}).</p>
+                  ) : (
+                    <select
+                      value={selectedMerchantId}
+                      onChange={(e) => setSelectedMerchantId(e.target.value)}
+                      className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+                    >
+                      {eligibleMerchants.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.displayName}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                <Button
+                  onClick={handleAssignMerchant}
+                  disabled={assignLoading || eligibleMerchantsLoading || eligibleMerchants.length === 0}
+                >
+                  {assignLoading ? 'Assigning…' : 'Assign merchant'}
+                </Button>
+              </div>
             )}
             {selectedOrder.status !== 'CLOSED' && (
               <Button variant="destructive" onClick={handleCancelClick} disabled={cancelLoading}>
                 Cancel order
               </Button>
+            )}
+
+            {(selectedOrder.status === 'COMPLETED' || selectedOrder.status === 'CLOSED') && (
+              <CompletionProofSection
+                orderId={selectedOrder.id}
+                status={selectedOrder.status}
+                fetchProof={fetchProof}
+              />
             )}
 
             <div className="pt-4 border-t border-neutral-200">

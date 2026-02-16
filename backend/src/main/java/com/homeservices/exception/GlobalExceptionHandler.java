@@ -26,8 +26,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalState(IllegalStateException e) {
-        log.warn("Bad request (state): {}", e.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorBody(e.getMessage()));
+        HttpStatus status = e.getMessage() != null && e.getMessage().contains("already submitted")
+            ? HttpStatus.CONFLICT : HttpStatus.BAD_REQUEST;
+        log.warn("Request rejected (state): {}", e.getMessage());
+        return ResponseEntity.status(status).body(errorBody(e.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

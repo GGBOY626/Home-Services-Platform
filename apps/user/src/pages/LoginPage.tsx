@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@home-services/ui';
 import { Button } from '@home-services/ui';
 import { Input } from '@home-services/ui';
@@ -61,6 +61,9 @@ export function LoginPage() {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Signing in…' : 'Sign in'}
             </Button>
+            <p className="mt-4 text-center text-sm text-neutral-600">
+              Don&apos;t have an account? <Link to="/register" className="font-medium text-neutral-900 hover:underline">Register</Link>
+            </p>
           </form>
         </CardContent>
       </Card>

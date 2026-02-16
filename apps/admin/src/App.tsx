@@ -10,6 +10,10 @@ import { FinanceSummaryPage } from './pages/finance/FinanceSummaryPage';
 import { FinanceLedgersPage } from './pages/finance/FinanceLedgersPage';
 import { FinanceFeeRulesPage } from './pages/finance/FinanceFeeRulesPage';
 import { AuditPage } from './pages/AuditPage';
+import { WorkerApplicationsPage } from './pages/WorkerApplicationsPage';
+import { MerchantApplicationsPage } from './pages/MerchantApplicationsPage';
+import { ComplaintsPage } from './pages/ComplaintsPage';
+import { RatingsPage } from './pages/RatingsPage';
 import { SettingsPage } from './pages/SettingsPage';
 
 export default function App() {
@@ -21,6 +25,8 @@ export default function App() {
       <Route path="/" element={token ? <Layout /> : <Navigate to="/login" replace />}>
         <Route index element={<Navigate to="/orders" replace />} />
         <Route path="orders" element={<OrdersPage />} />
+        <Route path="ratings" element={<RatingsPage />} />
+        <Route path="complaints" element={<ComplaintsPage />} />
         <Route path="catalog" element={<CatalogPage />} />
         <Route path="finance" element={<FinanceLayout />}>
           <Route index element={<FinanceSummaryPage />} />
@@ -28,6 +34,8 @@ export default function App() {
           <Route path="fee-rules" element={<FinanceFeeRulesPage />} />
         </Route>
         <Route path="merchants" element={<MerchantsPage />} />
+        <Route path="applications/workers" element={<WorkerApplicationsPage />} />
+        <Route path="applications/merchants" element={<MerchantApplicationsPage />} />
         <Route path="audit" element={<AuditPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>

@@ -1,10 +1,12 @@
 package com.homeservices.controller;
 
+import com.homeservices.dto.CompletionProofDTO;
 import com.homeservices.dto.OrderResponse;
 import com.homeservices.dto.RejectRequest;
 import com.homeservices.dto.SetAvailabilityRequest;
 import com.homeservices.dto.WorkerMeResponse;
 import com.homeservices.security.JwtPrincipal;
+import com.homeservices.service.CompletionProofService;
 import com.homeservices.service.CurrentUserService;
 import com.homeservices.service.OrderService;
 import com.homeservices.service.WorkerProfileService;
@@ -18,7 +20,10 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -28,6 +33,7 @@ import java.util.UUID;
 public class WorkerOrderController {
 
     private final OrderService orderService;
+    private final CompletionProofService completionProofService;
     private final CurrentUserService currentUserService;
     private final WorkerProfileService workerProfileService;
 
@@ -67,6 +73,21 @@ public class WorkerOrderController {
         return ResponseEntity.ok(order);
     }
 
+    @GetMapping("/orders/{id}/completion-proof")
+    @Operation(summary = "Get completion proof for order (Worker: assigned orders only)")
+    public ResponseEntity<CompletionProofDTO> getCompletionProof(@PathVariable UUID id,
+                                                                  @AuthenticationPrincipal JwtPrincipal principal) {
+        UUID workerId = currentUserService.getWorkerId(principal)
+            .orElseThrow(() -> new IllegalStateException("Worker profile not found"));
+        OrderResponse order = orderService.getById(id, principal);
+        if (order.getWorkerId() == null || !order.getWorkerId().equals(workerId)) {
+            return ResponseEntity.notFound().build();
+        }
+        return completionProofService.getProofForOrder(id, principal)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
     @PostMapping("/orders/{id}/accept")
     @Operation(summary = "Accept an assigned order")
     public ResponseEntity<OrderResponse> accept(@PathVariable UUID id,
@@ -78,12 +99,25 @@ public class WorkerOrderController {
     }
 
     @PostMapping("/orders/{id}/complete")
-    @Operation(summary = "Mark order as completed")
-    public ResponseEntity<OrderResponse> complete(@PathVariable UUID id,
-                                                    @AuthenticationPrincipal JwtPrincipal principal) {
+    @Operation(summary = "DEPRECATED: Use complete-with-proof. Returns 400 with instructions.")
+    public ResponseEntity<OrderResponse> completeDeprecated(@PathVariable UUID id,
+                                                            @AuthenticationPrincipal JwtPrincipal principal) {
+        throw new IllegalStateException(
+            "Use POST /orders/{id}/complete-with-proof with completionNotes (min 10 chars) and optional images.");
+    }
+
+    @PostMapping("/orders/{id}/complete-with-proof")
+    @Operation(summary = "Submit completion proof and mark order as completed")
+    public ResponseEntity<OrderResponse> completeWithProof(@PathVariable UUID id,
+                                                           @RequestParam("completionNotes") String completionNotes,
+                                                           @RequestParam(value = "labels", required = false) List<String> labels,
+                                                           @RequestParam(value = "files", required = false) List<MultipartFile> files,
+                                                           @AuthenticationPrincipal JwtPrincipal principal) {
         UUID workerId = currentUserService.getWorkerId(principal)
             .orElseThrow(() -> new IllegalStateException("Worker profile not found"));
-        OrderResponse response = orderService.complete(id, workerId, principal);
+        List<MultipartFile> fileList = files != null ? files : new ArrayList<>();
+        List<String> labelList = labels != null ? labels : new ArrayList<>();
+        OrderResponse response = completionProofService.submitProof(id, workerId, completionNotes, fileList, labelList, principal);
         return ResponseEntity.ok(response);
     }
 

@@ -10,8 +10,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.Set;
+
 /**
- * In dev, ensure seed users have password "Password123!" so manual testing works.
+ * In dev, ensure original seed users (V2) have password "Password123!" so manual testing works.
+ * Only updates known seed emails to avoid overwriting temp passwords of approved applications.
  */
 @Configuration
 @Profile("dev")
@@ -19,6 +22,9 @@ public class SeedPasswordInitializer {
 
     private static final Logger log = LoggerFactory.getLogger(SeedPasswordInitializer.class);
     private static final String SEED_PASSWORD = "Password123!";
+    private static final Set<String> SEED_EMAILS = Set.of(
+        "admin@demo.com", "merchant@demo.com", "worker1@demo.com", "worker2@demo.com", "user@demo.com"
+    );
 
     @Bean
     public ApplicationRunner initSeedPasswords(UserAccountRepository userAccountRepository,
@@ -28,7 +34,7 @@ public class SeedPasswordInitializer {
             if (!update) return;
             String hash = passwordEncoder.encode(SEED_PASSWORD);
             userAccountRepository.findAll().stream()
-                .filter(a -> a.getEmail().endsWith("@demo.com"))
+                .filter(a -> SEED_EMAILS.contains(a.getEmail()))
                 .forEach(account -> {
                     account.setPasswordHash(hash);
                     userAccountRepository.save(account);

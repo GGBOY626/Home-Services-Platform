@@ -44,6 +44,14 @@ export function OrdersPage() {
 
   const closeDrawer = () => setSearchParams({});
 
+  const fetchProof = async (orderId: string) => {
+    try {
+      return await api<import('@home-services/shared').CompletionProof>(`/merchant/orders/${orderId}/completion-proof`);
+    } catch {
+      return null;
+    }
+  };
+
   const handleAssignWorker = async (workerId: string) => {
     if (!selectedOrder) return;
     setAssignLoading(true);
@@ -150,6 +158,7 @@ export function OrdersPage() {
         onAssignWorker={handleAssignWorker}
         onRejectClick={handleRejectClick}
         assignLoading={assignLoading}
+        fetchProof={fetchProof}
       />
 
       <ConfirmDialog

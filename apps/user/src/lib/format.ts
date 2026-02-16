@@ -1,5 +1,6 @@
 export { formatDate, formatStatus, formatCurrency, formatScheduled } from '@home-services/shared';
 import type { OrderStatus } from '@home-services/shared';
+import type { ComplaintStatus } from '@home-services/shared';
 
 export function statusBadgeVariant(status: OrderStatus): 'default' | 'success' | 'warning' | 'destructive' | 'neutral' {
   switch (status) {
@@ -11,6 +12,20 @@ export function statusBadgeVariant(status: OrderStatus): 'default' | 'success' |
       return 'destructive';
     case 'WORKER_ASSIGNED':
     case 'ACCEPTED':
+      return 'warning';
+    default:
+      return 'neutral';
+  }
+}
+
+export function complaintStatusBadgeVariant(status: ComplaintStatus): 'default' | 'success' | 'warning' | 'destructive' | 'neutral' {
+  switch (status) {
+    case 'RESOLVED':
+    case 'CLOSED':
+      return 'success';
+    case 'REJECTED':
+      return 'destructive';
+    case 'IN_REVIEW':
       return 'warning';
     default:
       return 'neutral';

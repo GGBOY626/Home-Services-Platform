@@ -15,7 +15,7 @@ public class DispatchTimeoutJob {
 
     private final OrderService orderService;
 
-    @Scheduled(fixedDelayString = "60000", initialDelayString = "60000")
+    @Scheduled(fixedDelayString = "300000", initialDelayString = "60000")
     public void run() {
         try {
             int expired = orderService.processMerchantAssignTimeouts();

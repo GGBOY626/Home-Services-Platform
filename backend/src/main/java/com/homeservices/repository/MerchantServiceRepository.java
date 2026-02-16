@@ -14,4 +14,6 @@ public interface MerchantServiceRepository extends JpaRepository<MerchantService
     List<MerchantService> findByMerchantId(UUID merchantId);
 
     Optional<MerchantService> findByMerchantIdAndServiceItemId(UUID merchantId, Long serviceItemId);
+
+    List<MerchantService> findByServiceItemIdAndIsActiveTrue(Long serviceItemId);
 }

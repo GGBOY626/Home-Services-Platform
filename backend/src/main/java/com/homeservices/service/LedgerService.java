@@ -1,5 +1,6 @@
 package com.homeservices.service;
 
+import com.homeservices.config.AuditActions;
 import com.homeservices.config.AuditLogging;
 import com.homeservices.domain.*;
 import com.homeservices.repository.OrderRepository;
@@ -23,6 +24,7 @@ public class LedgerService {
     private final OrderRepository orderRepository;
     private final PayoutLedgerRepository ledgerRepository;
     private final FeeRuleResolver feeRuleResolver;
+    private final AuditEventService auditEventService;
 
     /**
      * Create a payout ledger for the order when it becomes CLOSED.
@@ -56,8 +58,14 @@ public class LedgerService {
             .calculatedAt(calculatedAt)
             .build();
         ledger = ledgerRepository.save(ledger);
+        long dur = System.currentTimeMillis() - start;
         AuditLogging.logWithActor("CREATE", "PayoutLedger", "id=" + ledger.getId() + ",orderId=" + orderId,
-            "SYSTEM", null, System.currentTimeMillis() - start);
+            "SYSTEM", null, dur);
+        String reqId = MDC.get(MDC_REQUEST_ID);
+        if (reqId == null || reqId.isBlank()) reqId = "SYSTEM-JOB";
+        auditEventService.recordSync(com.homeservices.dto.AuditEventCreate.builder()
+            .requestId(reqId).actorRole("SYSTEM").action(AuditActions.LEDGER_CREATE).entityType("LEDGER").entityId(ledger.getId().toString())
+            .summary("Ledger created for order").metadata(java.util.Map.of("orderId", orderId.toString(), "merchantId", order.getMerchantId().toString())).durationMs((int) dur).build());
     }
 
     /**
@@ -81,7 +89,11 @@ public class LedgerService {
                     }
                 }
             }
-            AuditLogging.logWithActor("BACKFILL", "PayoutLedger", "created=" + created, "SYSTEM", null, System.currentTimeMillis() - start);
+            long dur = System.currentTimeMillis() - start;
+            AuditLogging.logWithActor("BACKFILL", "PayoutLedger", "created=" + created, "SYSTEM", null, dur);
+            auditEventService.recordSync(com.homeservices.dto.AuditEventCreate.builder()
+                .requestId("SYSTEM-JOB").actorRole("SYSTEM").action(AuditActions.LEDGER_BACKFILL).entityType("LEDGER").entityId(null)
+                .summary("Ledger backfill: created " + created).metadata(java.util.Map.of("created", created)).durationMs((int) dur).build());
             return created;
         } finally {
             if (prevRequestId != null) MDC.put(MDC_REQUEST_ID, prevRequestId);
@@ -118,8 +130,11 @@ public class LedgerService {
         ledger.setStatus(LedgerStatus.PAID);
         ledger.setPaidAt(Instant.now());
         ledger = ledgerRepository.save(ledger);
+        long dur = System.currentTimeMillis() - start;
         AuditLogging.logWithActor("UPDATE", "PayoutLedger", "id=" + ledgerId + ",status=PAID",
-            principal.role().name(), principal.id().toString(), System.currentTimeMillis() - start);
+            principal.role().name(), principal.id().toString(), dur);
+        auditEventService.recordWithContext(principal.role().name(), principal.id().toString(), AuditActions.LEDGER_MARK_PAID, "LEDGER", ledgerId.toString(),
+            "Ledger marked as paid", java.util.Map.of("ledgerId", ledgerId, "orderId", ledger.getOrderId().toString()), (int) dur);
         return ledger;
     }
 }

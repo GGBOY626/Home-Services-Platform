@@ -2,6 +2,7 @@ package com.homeservices.controller;
 
 import com.homeservices.domain.Order;
 import com.homeservices.dto.CancelRequest;
+import com.homeservices.dto.CompletionProofDTO;
 import com.homeservices.dto.CreateOrderRequest;
 import com.homeservices.dto.OrderResponse;
 import com.homeservices.dto.OrderStatusHistoryItem;
@@ -31,6 +32,7 @@ public class UserOrderController {
 
     private final OrderService orderService;
     private final OrderRepository orderRepository;
+    private final com.homeservices.service.CompletionProofService completionProofService;
 
     @PostMapping
     @Operation(summary = "Create a new order")
@@ -90,6 +92,19 @@ public class UserOrderController {
         }
         OrderResponse response = orderService.reschedule(id, request.getScheduledAt(), principal);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}/completion-proof")
+    @Operation(summary = "Get completion proof for order (User: own orders only)")
+    public ResponseEntity<CompletionProofDTO> getCompletionProof(@PathVariable UUID id,
+                                                                  @AuthenticationPrincipal JwtPrincipal principal) {
+        Order order = orderRepository.findById(id).orElse(null);
+        if (order == null || !order.getCreatedBy().equals(principal.id())) {
+            return ResponseEntity.notFound().build();
+        }
+        return completionProofService.getProofForOrder(id, principal)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/{id}/history")

@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 const navItems = [
   { path: '/', label: 'Tasks', icon: '✓' },
   { path: '/orders', label: 'Orders', icon: '📋' },
+  { path: '/ratings', label: 'Ratings', icon: '⭐' },
   { path: '/profile', label: 'Profile', icon: '👤' },
 ];
 
@@ -21,7 +22,7 @@ export function WorkerShell({ children }: { children: React.ReactNode }) {
       <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-neutral-200 bg-white">
         <div className="flex justify-around py-2">
           {navItems.map(({ path, label, icon }) => {
-            const active = location.pathname === path || (path === '/orders' && location.pathname.startsWith('/orders'));
+            const active = location.pathname === path || (path === '/orders' && location.pathname.startsWith('/orders')) || (path === '/ratings' && location.pathname.startsWith('/ratings'));
             return (
               <Link
                 key={path}

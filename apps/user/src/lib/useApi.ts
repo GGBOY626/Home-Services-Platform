@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, ApiOptions } from '@home-services/shared';
+import { api, apiMultipart, ApiOptions } from '@home-services/shared';
 import { useAuth } from '../auth';
 
 export function useApi() {
@@ -21,5 +21,18 @@ export function useApi() {
     [token, logout, navigate]
   );
 
-  return { api: request, token };
+  const multipart = useCallback(
+    <T,>(path: string, formData: FormData): Promise<T> => {
+      return apiMultipart<T>(path, formData, {
+        token: token ?? undefined,
+        on401: () => {
+          logout();
+          navigate('/login');
+        },
+      });
+    },
+    [token, logout, navigate]
+  );
+
+  return { api: request, apiMultipart: multipart, token };
 }

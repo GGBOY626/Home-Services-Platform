@@ -1,5 +1,6 @@
 package com.homeservices.service;
 
+import com.homeservices.config.AuditActions;
 import com.homeservices.config.AuditLogging;
 import com.homeservices.domain.WorkerAvailability;
 import com.homeservices.domain.WorkerProfile;
@@ -19,6 +20,7 @@ public class WorkerProfileService {
 
     private final WorkerProfileRepository workerProfileRepository;
     private final CurrentUserService currentUserService;
+    private final AuditEventService auditEventService;
 
     public WorkerMeResponse getMe(JwtPrincipal principal) {
         long start = System.currentTimeMillis();
@@ -41,8 +43,11 @@ public class WorkerProfileService {
         }
         profile.setUpdatedAt(Instant.now());
         profile = workerProfileRepository.save(profile);
+        long dur = System.currentTimeMillis() - start;
         AuditLogging.logWithActor("UPDATE", "WorkerProfile", "id=" + profile.getId() + ",availability=" + availability,
-            principal.role().name(), principal.id().toString(), System.currentTimeMillis() - start);
+            principal.role().name(), principal.id().toString(), dur);
+        auditEventService.recordWithContext(principal.role().name(), principal.id().toString(), AuditActions.WORKER_AVAILABILITY_CHANGE, "WORKER", profile.getId().toString(),
+            "Worker availability changed", java.util.Map.of("availability", availability.name()), (int) dur);
         return toMeResponse(profile);
     }
 

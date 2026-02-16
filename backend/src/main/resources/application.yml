@@ -30,6 +30,8 @@ springdoc:
     enabled: true
 
 app:
+  cors:
+    allowed-origins: ""
   jwt:
     access-token-validity-ms: 900000
     refresh-token-validity-days: 7
@@ -40,3 +42,9 @@ app:
   scheduling:
     min-hours-ahead: 1
     max-days-ahead: 60
+  storage:
+    local-root: "./uploads"
+    public-base-url: "http://localhost:8080"
+    max-file-size-mb: 10
+    max-files-per-proof: 6
+    allowed-content-types: ["image/jpeg","image/png","image/webp"]

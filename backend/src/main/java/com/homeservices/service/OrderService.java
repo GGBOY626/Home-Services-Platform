@@ -1,5 +1,6 @@
 package com.homeservices.service;
 
+import com.homeservices.config.AuditActions;
 import com.homeservices.config.AuditLogging;
 import com.homeservices.config.DispatchProperties;
 import com.homeservices.domain.Order;
@@ -9,9 +10,13 @@ import com.homeservices.domain.Role;
 import com.homeservices.domain.ServiceItem;
 import com.homeservices.domain.WorkerAvailability;
 import com.homeservices.domain.WorkerProfile;
+import com.homeservices.domain.MerchantService;
+import com.homeservices.dto.AuditEventCreate;
 import com.homeservices.dto.CreateOrderRequest;
+import com.homeservices.dto.MerchantSummaryDTO;
 import com.homeservices.dto.OrderResponse;
 import com.homeservices.repository.MerchantProfileRepository;
+import com.homeservices.repository.MerchantServiceRepository;
 import com.homeservices.repository.OrderRepository;
 import com.homeservices.repository.OrderStatusHistoryRepository;
 import com.homeservices.repository.ServiceItemRepository;
@@ -37,11 +42,14 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ServiceItemRepository serviceItemRepository;
     private final MerchantProfileRepository merchantProfileRepository;
+    private final MerchantServiceRepository merchantServiceRepository;
     private final WorkerProfileRepository workerProfileRepository;
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
+    private final com.homeservices.repository.OrderCompletionProofRepository completionProofRepository;
     private final DispatchProperties dispatchProperties;
     private final LedgerService ledgerService;
     private final SchedulingValidator schedulingValidator;
+    private final AuditEventService auditEventService;
 
     @Transactional
     public OrderResponse create(CreateOrderRequest request, JwtPrincipal principal) {
@@ -75,8 +83,11 @@ public class OrderService {
             .build();
         order = orderRepository.save(order);
         recordHistory(order.getId(), null, OrderStatus.PLACED.name(), principal.role().name(), principal.id(), null);
+        long dur = System.currentTimeMillis() - start;
         AuditLogging.logWithActor("CREATE", "Order", "id=" + order.getId() + ",scheduledAt=" + scheduledAt,
-            principal.role().name(), principal.id().toString(), System.currentTimeMillis() - start);
+            principal.role().name(), principal.id().toString(), dur);
+        auditEventService.recordWithContext(principal.role().name(), principal.id().toString(), AuditActions.ORDER_CREATE, "ORDER", order.getId().toString(),
+            "Order created", java.util.Map.of("scheduledAt", scheduledAt.toString()), (int) dur);
         return toResponse(order);
     }
 
@@ -125,6 +136,22 @@ public class OrderService {
         return toResponse(order);
     }
 
+    @Transactional(readOnly = true)
+    public List<MerchantSummaryDTO> getEligibleMerchantsForOrder(UUID orderId, JwtPrincipal principal) {
+        Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+        Long serviceItemId = order.getServiceItemId();
+        List<MerchantService> offers = merchantServiceRepository.findByServiceItemIdAndIsActiveTrue(serviceItemId);
+        return offers.stream()
+            .map(MerchantService::getMerchantId)
+            .distinct()
+            .map(merchantProfileRepository::findById)
+            .filter(java.util.Optional::isPresent)
+            .map(java.util.Optional::get)
+            .map(p -> new MerchantSummaryDTO(p.getId().toString(), p.getDisplayName()))
+            .toList();
+    }
+
     @Transactional
     public OrderResponse assignMerchant(UUID orderId, UUID merchantId, JwtPrincipal principal) {
         long start = System.currentTimeMillis();
@@ -136,13 +163,20 @@ public class OrderService {
         if (!merchantProfileRepository.existsById(merchantId)) {
             throw new IllegalArgumentException("Merchant not found: " + merchantId);
         }
+        var offer = merchantServiceRepository.findByMerchantIdAndServiceItemId(merchantId, order.getServiceItemId()).orElse(null);
+        if (offer == null || !Boolean.TRUE.equals(offer.getIsActive())) {
+            throw new IllegalArgumentException("Merchant does not offer this order's service");
+        }
         OrderStatus from = order.getStatus();
         order.setMerchantId(merchantId);
         order.setStatus(OrderStatus.MERCHANT_ASSIGNED);
         order = orderRepository.save(order);
         recordHistory(order.getId(), from.name(), order.getStatus().name(), principal.role().name(), principal.id(), null);
+        long dur = System.currentTimeMillis() - start;
         AuditLogging.logWithActor("UPDATE", "Order", "id=" + order.getId(),
-            principal.role().name(), principal.id().toString(), System.currentTimeMillis() - start);
+            principal.role().name(), principal.id().toString(), dur);
+        auditEventService.recordWithContext(principal.role().name(), principal.id().toString(), AuditActions.ORDER_ASSIGN_MERCHANT, "ORDER", order.getId().toString(),
+            "Order assigned to merchant", java.util.Map.of("merchantId", merchantId.toString(), "fromStatus", from.name()), (int) dur);
         return toResponse(order);
     }
 
@@ -173,8 +207,11 @@ public class OrderService {
         order.setWorkerAcceptDeadline(Instant.now().plusSeconds(dispatchProperties.getWorkerAcceptTtlMinutes() * 60L));
         order = orderRepository.save(order);
         recordHistory(order.getId(), from.name(), order.getStatus().name(), principal.role().name(), principal.id(), null);
+        long dur = System.currentTimeMillis() - start;
         AuditLogging.logWithActor("UPDATE", "Order", "id=" + order.getId(),
-            principal.role().name(), principal.id().toString(), System.currentTimeMillis() - start);
+            principal.role().name(), principal.id().toString(), dur);
+        auditEventService.recordWithContext(principal.role().name(), principal.id().toString(), AuditActions.ORDER_ASSIGN_WORKER, "ORDER", order.getId().toString(),
+            "Order assigned to worker", java.util.Map.of("workerId", workerId.toString(), "merchantId", merchantId.toString()), (int) dur);
         return toResponse(order);
     }
 
@@ -194,8 +231,11 @@ public class OrderService {
         order.setWorkerAcceptDeadline(null);
         order = orderRepository.save(order);
         recordHistory(order.getId(), from.name(), order.getStatus().name(), principal.role().name(), principal.id(), null);
+        long dur = System.currentTimeMillis() - start;
         AuditLogging.logWithActor("UPDATE", "Order", "id=" + order.getId(),
-            principal.role().name(), principal.id().toString(), System.currentTimeMillis() - start);
+            principal.role().name(), principal.id().toString(), dur);
+        auditEventService.recordWithContext(principal.role().name(), principal.id().toString(), AuditActions.ORDER_ACCEPT, "ORDER", order.getId().toString(),
+            "Worker accepted order", null, (int) dur);
         return toResponse(order);
     }
 
@@ -230,13 +270,19 @@ public class OrderService {
         if (!order.getCreatedBy().equals(createdBy)) {
             throw new IllegalArgumentException("Only the user who created the order can confirm completion");
         }
+        if (!completionProofRepository.existsByOrderId(orderId)) {
+            throw new IllegalStateException("Completion proof is required before confirming completion.");
+        }
         OrderStatus from = order.getStatus();
         order.setStatus(OrderStatus.CLOSED);
         order = orderRepository.save(order);
         recordHistory(order.getId(), from.name(), order.getStatus().name(), principal.role().name(), principal.id(), null);
         ledgerService.createLedgerForOrderIfEligible(order.getId());
+        long dur = System.currentTimeMillis() - start;
         AuditLogging.logWithActor("UPDATE", "Order", "id=" + order.getId(),
-            principal.role().name(), principal.id().toString(), System.currentTimeMillis() - start);
+            principal.role().name(), principal.id().toString(), dur);
+        auditEventService.recordWithContext(principal.role().name(), principal.id().toString(), AuditActions.ORDER_CONFIRM, "ORDER", order.getId().toString(),
+            "User confirmed completion", null, (int) dur);
         return toResponse(order);
     }
 
@@ -297,8 +343,11 @@ public class OrderService {
         order.setMerchantAssignDeadline(Instant.now().plusSeconds(dispatchProperties.getMerchantAssignTtlMinutes() * 60L));
         order = orderRepository.save(order);
         recordHistory(order.getId(), from.name(), order.getStatus().name(), principal.role().name(), principal.id(), reason);
+        long dur = System.currentTimeMillis() - start;
         AuditLogging.logWithActor("UPDATE", "Order", "id=" + order.getId(),
-            principal.role().name(), principal.id().toString(), System.currentTimeMillis() - start);
+            principal.role().name(), principal.id().toString(), dur);
+        auditEventService.recordWithContext(principal.role().name(), principal.id().toString(), AuditActions.ORDER_REJECT_MERCHANT, "ORDER", order.getId().toString(),
+            "Merchant rejected order", java.util.Map.of("reason", reason != null ? reason : ""), (int) dur);
         return toResponse(order);
     }
 
@@ -319,8 +368,11 @@ public class OrderService {
         order.setWorkerAcceptDeadline(null);
         order = orderRepository.save(order);
         recordHistory(order.getId(), from.name(), order.getStatus().name(), principal.role().name(), principal.id(), reason);
+        long dur = System.currentTimeMillis() - start;
         AuditLogging.logWithActor("UPDATE", "Order", "id=" + order.getId(),
-            principal.role().name(), principal.id().toString(), System.currentTimeMillis() - start);
+            principal.role().name(), principal.id().toString(), dur);
+        auditEventService.recordWithContext(principal.role().name(), principal.id().toString(), AuditActions.ORDER_REJECT_WORKER, "ORDER", order.getId().toString(),
+            "Worker rejected order", java.util.Map.of("reason", reason != null ? reason : ""), (int) dur);
         return toResponse(order);
     }
 
@@ -338,6 +390,9 @@ public class OrderService {
                 order.setMerchantAssignDeadline(null);
                 orderRepository.save(order);
                 recordHistory(order.getId(), from.name(), OrderStatus.EXPIRED.name(), "SYSTEM", null, "Merchant assign deadline exceeded");
+                auditEventService.recordSync(AuditEventCreate.builder()
+                    .requestId("SYSTEM-JOB").actorRole("SYSTEM").action(AuditActions.ORDER_EXPIRE).entityType("ORDER").entityId(order.getId().toString())
+                    .summary("Order expired: merchant assign timeout").metadata(java.util.Map.of("orderId", order.getId().toString())).durationMs((int)(System.currentTimeMillis() - start)).build());
             }
             AuditLogging.logWithActor("UPDATE", "Order", "expiredCount=" + expired.size(), "SYSTEM", null, System.currentTimeMillis() - start);
             return expired.size();
@@ -365,6 +420,9 @@ public class OrderService {
                 order.setWorkerAcceptDeadline(null);
                 orderRepository.save(order);
                 recordHistory(order.getId(), from.name(), OrderStatus.MERCHANT_ASSIGNED.name(), "SYSTEM", null, "Worker accept deadline exceeded");
+                auditEventService.recordSync(AuditEventCreate.builder()
+                    .requestId("SYSTEM-JOB").actorRole("SYSTEM").action(AuditActions.ORDER_ROLLBACK_WORKER_ACCEPT_TIMEOUT).entityType("ORDER").entityId(order.getId().toString())
+                    .summary("Order rollback: worker accept timeout").metadata(java.util.Map.of("orderId", order.getId().toString())).durationMs((int)(System.currentTimeMillis() - start)).build());
             }
             AuditLogging.logWithActor("UPDATE", "Order", "rollbackCount=" + expired.size(), "SYSTEM", null, System.currentTimeMillis() - start);
             return expired.size();
@@ -406,7 +464,10 @@ public class OrderService {
         order.setWorkerAcceptDeadline(null);
         order = orderRepository.save(order);
         recordHistory(order.getId(), from.name(), OrderStatus.CANCELLED.name(), actorRole, actorId, reason);
-        AuditLogging.logWithActor("UPDATE", "Order", "id=" + order.getId(), actorRole, actorId.toString(), System.currentTimeMillis() - startMs);
+        int dur = (int) (System.currentTimeMillis() - startMs);
+        AuditLogging.logWithActor("UPDATE", "Order", "id=" + order.getId(), actorRole, actorId.toString(), dur);
+        auditEventService.recordWithContext(actorRole, actorId != null ? actorId.toString() : null, AuditActions.ORDER_CANCEL, "ORDER", order.getId().toString(),
+            "Order cancelled", java.util.Map.of("fromStatus", from.name(), "reason", reason != null ? reason : ""), dur);
         return toResponse(order);
     }
 
@@ -463,12 +524,15 @@ public class OrderService {
         long start = System.currentTimeMillis();
         order.setScheduledAt(scheduledAt);
         order = orderRepository.save(order);
+        long dur = System.currentTimeMillis() - start;
         AuditLogging.logWithActor("UPDATE", "Order", "id=" + orderId + ",reschedule,scheduledAt=" + scheduledAt,
-            principal.role().name(), principal.id().toString(), System.currentTimeMillis() - start);
+            principal.role().name(), principal.id().toString(), dur);
+        auditEventService.recordWithContext(principal.role().name(), principal.id().toString(), AuditActions.ORDER_RESCHEDULE, "ORDER", orderId.toString(),
+            "Order rescheduled", java.util.Map.of("scheduledAt", scheduledAt.toString()), (int) dur);
         return toResponse(order);
     }
 
-    private OrderResponse toResponse(Order order) {
+    OrderResponse toResponse(Order order) {
         return OrderResponse.builder()
             .id(order.getId())
             .serviceItemId(order.getServiceItemId())

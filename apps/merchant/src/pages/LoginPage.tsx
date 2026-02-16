@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@home-services/ui';
 import { Button, Input, Label } from '@home-services/ui';
 import { useAuth } from '../auth';
@@ -42,6 +42,9 @@ export function LoginPage() {
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</Button>
+            <p className="mt-4 text-center text-sm text-neutral-600">
+              Want to join as a merchant? <Link to="/apply" className="font-medium text-neutral-900 hover:underline">Apply here</Link>
+            </p>
           </form>
         </CardContent>
       </Card>

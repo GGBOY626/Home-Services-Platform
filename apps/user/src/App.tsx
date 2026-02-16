@@ -1,11 +1,15 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './auth';
 import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
 import { Layout } from './Layout';
 import { HomePage } from './pages/HomePage';
 import { OrdersPage } from './pages/OrdersPage';
 import { OrderDetailPage } from './pages/OrderDetailPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { ComplaintsPage } from './pages/ComplaintsPage';
+import { ComplaintDetailPage } from './pages/ComplaintDetailPage';
+import { RatingsPage } from './pages/RatingsPage';
 
 export default function App() {
   const { token } = useAuth();
@@ -13,10 +17,14 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={token ? <Navigate to="/" replace /> : <LoginPage />} />
+      <Route path="/register" element={token ? <Navigate to="/" replace /> : <RegisterPage />} />
       <Route path="/" element={token ? <Layout /> : <Navigate to="/login" replace />}>
         <Route index element={<HomePage />} />
         <Route path="orders" element={<OrdersPage />} />
         <Route path="orders/:id" element={<OrderDetailPage />} />
+        <Route path="ratings" element={<RatingsPage />} />
+        <Route path="complaints" element={<ComplaintsPage />} />
+        <Route path="complaints/:id" element={<ComplaintDetailPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

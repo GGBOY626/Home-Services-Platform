@@ -4,6 +4,7 @@ import com.homeservices.config.AuditLogging;
 import com.homeservices.domain.WorkerAvailability;
 import com.homeservices.domain.WorkerProfile;
 import com.homeservices.dto.AssignWorkerRequest;
+import com.homeservices.dto.CompletionProofDTO;
 import com.homeservices.dto.OrderResponse;
 import com.homeservices.dto.RejectRequest;
 import com.homeservices.dto.WorkerSummaryResponse;
@@ -33,6 +34,7 @@ import java.util.stream.Collectors;
 public class MerchantOrderController {
 
     private final OrderService orderService;
+    private final com.homeservices.service.CompletionProofService completionProofService;
     private final CurrentUserService currentUserService;
     private final WorkerProfileRepository workerProfileRepository;
 
@@ -43,6 +45,21 @@ public class MerchantOrderController {
         UUID merchantId = currentUserService.getMerchantId(principal)
             .orElseThrow(() -> new IllegalStateException("Merchant profile not found"));
         return ResponseEntity.ok(orderService.findByMerchantId(merchantId, pageable, principal));
+    }
+
+    @GetMapping("/orders/{id}/completion-proof")
+    @Operation(summary = "Get completion proof for order (Merchant: assigned orders only)")
+    public ResponseEntity<CompletionProofDTO> getCompletionProof(@PathVariable UUID id,
+                                                                  @AuthenticationPrincipal JwtPrincipal principal) {
+        OrderResponse order = orderService.getById(id, principal);
+        UUID merchantId = currentUserService.getMerchantId(principal)
+            .orElseThrow(() -> new IllegalStateException("Merchant profile not found"));
+        if (order.getMerchantId() == null || !order.getMerchantId().equals(merchantId)) {
+            return ResponseEntity.notFound().build();
+        }
+        return completionProofService.getProofForOrder(id, principal)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/orders/{id}")

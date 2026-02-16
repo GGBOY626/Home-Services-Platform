@@ -2,6 +2,8 @@ package com.homeservices.controller;
 
 import com.homeservices.dto.AssignMerchantRequest;
 import com.homeservices.dto.CancelRequest;
+import com.homeservices.dto.MerchantSummaryDTO;
+import com.homeservices.dto.CompletionProofDTO;
 import com.homeservices.dto.OrderResponse;
 import com.homeservices.dto.OrderStatusHistoryItem;
 import com.homeservices.security.JwtPrincipal;
@@ -27,6 +29,7 @@ import java.util.UUID;
 public class AdminOrderController {
 
     private final OrderService orderService;
+    private final com.homeservices.service.CompletionProofService completionProofService;
 
     @GetMapping
     @Operation(summary = "List all orders")
@@ -40,6 +43,13 @@ public class AdminOrderController {
     public ResponseEntity<OrderResponse> get(@PathVariable UUID id,
                                               @AuthenticationPrincipal JwtPrincipal principal) {
         return ResponseEntity.ok(orderService.getById(id, principal));
+    }
+
+    @GetMapping("/{id}/eligible-merchants")
+    @Operation(summary = "List merchants that offer this order's service")
+    public ResponseEntity<List<MerchantSummaryDTO>> eligibleMerchants(@PathVariable UUID id,
+                                                                       @AuthenticationPrincipal JwtPrincipal principal) {
+        return ResponseEntity.ok(orderService.getEligibleMerchantsForOrder(id, principal));
     }
 
     @PostMapping("/{id}/assign-merchant")
@@ -58,6 +68,15 @@ public class AdminOrderController {
                                                  @AuthenticationPrincipal JwtPrincipal principal) {
         OrderResponse response = orderService.cancelByAdmin(id, request != null ? request.getReason() : null, principal);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}/completion-proof")
+    @Operation(summary = "Get completion proof for order (Admin: any order)")
+    public ResponseEntity<CompletionProofDTO> getCompletionProof(@PathVariable UUID id,
+                                                                  @AuthenticationPrincipal JwtPrincipal principal) {
+        return completionProofService.getProofForOrder(id, principal)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/{id}/history")

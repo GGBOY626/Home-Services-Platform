@@ -70,19 +70,6 @@ export function TasksPage() {
     }
   };
 
-  const handleComplete = async (id: string) => {
-    setActionLoading(true);
-    try {
-      const updated = await api<Order>(`/worker/orders/${id}/complete`, { method: 'POST' });
-      setOrders((prev) => prev.map((o) => (o.id === id ? updated : o)));
-      addToast('success', 'Job completed');
-    } catch (err) {
-      addToast('error', 'Failed', err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   const handleRejectConfirm = async (reason: string) => {
     if (!rejectOrderId) return;
     setActionLoading(true);
@@ -147,9 +134,9 @@ export function TasksPage() {
       {current ? (
         <TaskCard
           order={current}
-          primaryLabel={current.status === 'WORKER_ASSIGNED' ? 'Accept Job' : 'Complete Job'}
+          primaryLabel={current.status === 'WORKER_ASSIGNED' ? 'Accept Job' : 'Submit Proof & Complete'}
           onPrimary={() =>
-            current.status === 'WORKER_ASSIGNED' ? handleAccept(current.id) : handleComplete(current.id)
+            current.status === 'WORKER_ASSIGNED' ? handleAccept(current.id) : navigate(`/orders/${current.id}`)
           }
           secondaryLabel={current.status === 'WORKER_ASSIGNED' ? 'Reject' : undefined}
           onSecondary={current.status === 'WORKER_ASSIGNED' ? () => setRejectOrderId(current.id) : undefined}

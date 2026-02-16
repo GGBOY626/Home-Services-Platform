@@ -4,9 +4,13 @@ import { Button } from '@home-services/ui';
 
 const navItems = [
   { path: '/orders', label: 'Orders' },
+  { path: '/ratings', label: 'Ratings' },
+  { path: '/complaints', label: 'Complaints' },
   { path: '/catalog', label: 'Catalog' },
   { path: '/finance', label: 'Finance' },
   { path: '/merchants', label: 'Merchants' },
+  { path: '/applications/workers', label: 'Worker Applications' },
+  { path: '/applications/merchants', label: 'Merchant Applications' },
   { path: '/audit', label: 'Audit Logs' },
   { path: '/settings', label: 'Settings' },
 ];

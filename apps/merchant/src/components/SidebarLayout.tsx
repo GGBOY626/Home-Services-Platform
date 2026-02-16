@@ -6,6 +6,8 @@ import { Button } from '@home-services/ui';
 const navItems = [
   { path: '/', label: 'Dashboard' },
   { path: '/orders', label: 'Orders' },
+  { path: '/ratings', label: 'Ratings' },
+  { path: '/complaints', label: 'Complaints' },
   { path: '/services', label: 'Services' },
   { path: '/finance', label: 'Finance' },
   { path: '/workers', label: 'Workers' },
