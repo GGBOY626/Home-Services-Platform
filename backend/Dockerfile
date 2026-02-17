@@ -10,10 +10,11 @@ RUN mvn package -DskipTests -B -q
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-RUN adduser -D -u 1000 appuser
+RUN apk add --no-cache su-exec \
+    && adduser -D -u 1000 -s /bin/sh appuser
 COPY --from=build /app/target/*.jar app.jar
+COPY entrypoint.sh /entrypoint.sh
+RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 
-USER appuser
 EXPOSE 8080
-
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+ENTRYPOINT ["/entrypoint.sh"]

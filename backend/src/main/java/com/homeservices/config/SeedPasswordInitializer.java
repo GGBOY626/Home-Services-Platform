@@ -13,11 +13,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.Set;
 
 /**
- * In dev, ensure original seed users (V2) have password "Password123!" so manual testing works.
+ * In dev and prod, ensure original seed users (V2) have password "Password123!" so manual/demo login works.
  * Only updates known seed emails to avoid overwriting temp passwords of approved applications.
  */
 @Configuration
-@Profile("dev")
+@Profile({"dev", "prod"})
 public class SeedPasswordInitializer {
 
     private static final Logger log = LoggerFactory.getLogger(SeedPasswordInitializer.class);

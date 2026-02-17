@@ -26,6 +26,7 @@ public class LocalFileStorageService {
 
     /**
      * Resolves storage root to absolute path (avoids Tomcat temp dir when using relative paths).
+     * Caller should use ensureStorageRootExists() before writing if the root might not exist yet.
      */
     private Path getStorageRoot() {
         Path root = Paths.get(storageProperties.getLocalRoot());
@@ -33,6 +34,16 @@ public class LocalFileStorageService {
             root = Paths.get(System.getProperty("user.dir")).resolve(root);
         }
         return root.toAbsolutePath().normalize();
+    }
+
+    /** Ensures storage root exists (e.g. in Docker the entrypoint chowns /data/uploads so this can succeed). */
+    private void ensureStorageRootExists(Path root) throws IOException {
+        if (Files.exists(root)) return;
+        try {
+            Files.createDirectories(root);
+        } catch (IOException e) {
+            throw new IOException("Cannot create storage root " + root + " (check directory exists and process has write permission): " + e.getMessage(), e);
+        }
     }
 
     /**
@@ -50,6 +61,7 @@ public class LocalFileStorageService {
         String storedName = UUID.randomUUID().toString() + "_" + sanitized;
 
         Path root = getStorageRoot();
+        ensureStorageRootExists(root);
         Path baseDir = root.resolve("orders").resolve(orderId.toString());
         Files.createDirectories(baseDir);
 
@@ -72,6 +84,7 @@ public class LocalFileStorageService {
         String sanitized = sanitizeFilename(originalName);
         String storedName = UUID.randomUUID().toString() + "_" + sanitized;
         Path root = getStorageRoot();
+        ensureStorageRootExists(root);
         Path baseDir = root.resolve("complaints").resolve(String.valueOf(ticketId));
         Files.createDirectories(baseDir);
         Path targetPath = baseDir.resolve(storedName).normalize();
