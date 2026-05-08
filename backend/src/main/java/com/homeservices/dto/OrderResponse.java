@@ -1,6 +1,7 @@
 package com.homeservices.dto;
 
 import com.homeservices.domain.OrderStatus;
+import com.homeservices.domain.PaymentStatus;
 import lombok.Builder;
 import lombok.Data;
 
@@ -32,4 +33,10 @@ public class OrderResponse {
     private Instant workerAcceptDeadline;
     private Instant scheduledAt;
     private Long version;
+
+    private String stripePaymentIntentId;
+    private PaymentStatus paymentStatus;
+    private Instant paidAt;
+    private Integer refundedAmountCents;
+    private Instant refundedAt;
 }

@@ -555,6 +555,11 @@ public class OrderService {
             .workerAcceptDeadline(order.getWorkerAcceptDeadline())
             .scheduledAt(order.getScheduledAt())
             .version(order.getVersion())
+            .stripePaymentIntentId(order.getStripePaymentIntentId())
+            .paymentStatus(order.getPaymentStatus())
+            .paidAt(order.getPaidAt())
+            .refundedAmountCents(order.getRefundedAmountCents())
+            .refundedAt(order.getRefundedAt())
             .build();
     }
 }

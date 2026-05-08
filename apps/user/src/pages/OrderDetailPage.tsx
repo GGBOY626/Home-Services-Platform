@@ -7,6 +7,7 @@ import { useApi } from '../lib/useApi';
 import { useToast } from '@home-services/ui';
 import { StatusBadge } from '../components/StatusBadge';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { PaymentSection } from '../components/PaymentSection';
 import { formatDate, formatCurrency, formatScheduled } from '../lib/format';
 
 const COMPLAINT_CATEGORIES: ComplaintCategory[] = [
@@ -171,6 +172,16 @@ export function OrderDetailPage() {
   const terminal = ['CANCELLED', 'EXPIRED', 'CLOSED'].includes(order.status);
   const showProofSection = order.status === 'COMPLETED' && proof;
   const canRaiseComplaint = ['ACCEPTED', 'COMPLETED', 'CLOSED'].includes(order.status);
+  const needsPayment = order.status === 'PLACED' &&
+    (order.paymentStatus === 'UNPAID' || order.paymentStatus === 'FAILED' || order.paymentStatus === 'AWAITING');
+  const paymentStatusLabel: Record<string, string> = {
+    UNPAID: 'Awaiting payment',
+    AWAITING: 'Payment pending',
+    PAID: 'Paid',
+    REFUNDED: 'Refunded',
+    PARTIALLY_REFUNDED: 'Partially refunded',
+    FAILED: 'Payment failed',
+  };
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
@@ -182,6 +193,22 @@ export function OrderDetailPage() {
           </div>
           <p className="mt-2 text-sm text-neutral-600">{formatCurrency(order.priceCents)} · {order.durationMinutesSnapshot} min</p>
           <p className="mt-2 text-sm font-medium text-neutral-700">Scheduled: {formatScheduled(order.scheduledAt)}</p>
+          {order.paymentStatus && (
+            <p className="mt-2 text-sm">
+              <span className="font-medium text-neutral-700">Payment: </span>
+              <span className={
+                order.paymentStatus === 'PAID' ? 'text-green-600 font-medium' :
+                order.paymentStatus === 'REFUNDED' || order.paymentStatus === 'PARTIALLY_REFUNDED' ? 'text-amber-600 font-medium' :
+                order.paymentStatus === 'FAILED' ? 'text-red-600 font-medium' :
+                'text-neutral-500'
+              }>
+                {paymentStatusLabel[order.paymentStatus] ?? order.paymentStatus}
+              </span>
+              {order.refundedAmountCents && (
+                <span className="text-neutral-500 ml-1">({formatCurrency(order.refundedAmountCents)} refunded)</span>
+              )}
+            </p>
+          )}
           <p className="mt-4 text-neutral-900">{order.address}</p>
           {order.notes && (
             <p className="mt-2 text-sm text-neutral-600">
@@ -273,6 +300,17 @@ export function OrderDetailPage() {
                 </div>
               )}
             </div>
+          )}
+
+          {needsPayment && (
+            <PaymentSection
+              orderId={order.id}
+              priceCents={order.priceCents}
+              token={token}
+              onPaymentComplete={() => {
+                apiRequest<Order>(`/user/orders/${id}`).then(setOrder).catch(() => {});
+              }}
+            />
           )}
 
           <div className="mt-6 flex flex-wrap gap-3">

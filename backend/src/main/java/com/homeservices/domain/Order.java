@@ -98,6 +98,26 @@ public class Order {
     @Column(name = "scheduled_at", nullable = false)
     private Instant scheduledAt;
 
+    @Column(name = "stripe_payment_intent_id", length = 100)
+    private String stripePaymentIntentId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_status", nullable = false, length = 30)
+    @Builder.Default
+    private PaymentStatus paymentStatus = PaymentStatus.UNPAID;
+
+    @Column(name = "paid_at")
+    private Instant paidAt;
+
+    @Column(name = "stripe_refund_id", length = 100)
+    private String stripeRefundId;
+
+    @Column(name = "refunded_amount_cents")
+    private Integer refundedAmountCents;
+
+    @Column(name = "refunded_at")
+    private Instant refundedAt;
+
     @Version
     @Column(name = "version", nullable = false)
     private Long version;

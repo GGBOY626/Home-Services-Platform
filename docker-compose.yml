@@ -9,8 +9,8 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: "Yoobee@2025!"
       MYSQL_DATABASE: "home_services"
-      MYSQL_USER: "app"
-      MYSQL_PASSWORD: "appsecret"
+      MYSQL_USER: "root"
+      MYSQL_PASSWORD: "Yoobee@2025!"
       TZ: "Pacific/Auckland"
     volumes:
       - "D:/docker/home-services/mysql/data:/var/lib/mysql"

@@ -15,6 +15,7 @@ import { MerchantApplicationsPage } from './pages/MerchantApplicationsPage';
 import { ComplaintsPage } from './pages/ComplaintsPage';
 import { RatingsPage } from './pages/RatingsPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { PaymentsPage } from './pages/PaymentsPage';
 
 export default function App() {
   const { token } = useAuth();
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="applications/merchants" element={<MerchantApplicationsPage />} />
         <Route path="audit" element={<AuditPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="payments" element={<PaymentsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/orders" replace />} />
     </Routes>

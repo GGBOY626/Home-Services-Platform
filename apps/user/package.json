@@ -11,6 +11,8 @@
   "dependencies": {
     "@home-services/shared": "workspace:*",
     "@home-services/ui": "workspace:*",
+    "@stripe/react-stripe-js": "^2.4.0",
+    "@stripe/stripe-js": "^3.3.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.22.0"

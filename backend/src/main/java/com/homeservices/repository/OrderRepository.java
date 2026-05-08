@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -27,4 +28,6 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     List<Order> findByStatusAndWorkerAcceptDeadlineBefore(OrderStatus status, Instant deadline);
 
     List<Order> findByStatus(OrderStatus status);
+
+    Optional<Order> findByStripePaymentIntentId(String stripePaymentIntentId);
 }

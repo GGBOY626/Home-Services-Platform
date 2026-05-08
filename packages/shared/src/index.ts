@@ -13,6 +13,37 @@ export type OrderStatus =
   | 'CANCELLED'
   | 'EXPIRED';
 
+export type PaymentStatus =
+  | 'UNPAID'
+  | 'AWAITING'
+  | 'PAID'
+  | 'REFUNDED'
+  | 'PARTIALLY_REFUNDED'
+  | 'FAILED';
+
+export interface CreatePaymentIntentResponse {
+  clientSecret: string;
+  publishableKey: string;
+  paymentIntentId: string;
+  orderId: string;
+  amountCents: number;
+  currency: string;
+}
+
+export interface PaymentSummaryDTO {
+  orderId: string;
+  serviceNameSnapshot: string;
+  priceCents: number;
+  orderStatus: OrderStatus;
+  paymentStatus: PaymentStatus;
+  stripePaymentIntentId: string | null;
+  stripeRefundId: string | null;
+  paidAt: string | null;
+  refundedAmountCents: number | null;
+  refundedAt: string | null;
+  createdAt: string;
+}
+
 export interface ServiceCategoryDTO {
   id: number;
   code: string;
@@ -97,6 +128,11 @@ export interface Order {
   merchantAssignDeadline?: string | null;
   workerAcceptDeadline?: string | null;
   scheduledAt: string;
+  paymentStatus?: PaymentStatus | null;
+  stripePaymentIntentId?: string | null;
+  paidAt?: string | null;
+  refundedAmountCents?: number | null;
+  refundedAt?: string | null;
 }
 
 export interface WorkerSummary {
