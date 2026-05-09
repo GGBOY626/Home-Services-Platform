@@ -274,6 +274,23 @@ export interface RatingSummaryDTO {
   recentComments: string[];
 }
 
+export type RefundRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface RefundRequestDTO {
+  id: number;
+  orderId: string;
+  userId: string;
+  reason: string | null;
+  status: RefundRequestStatus;
+  adminNote: string | null;
+  decidedBy: string | null;
+  decidedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  serviceNameSnapshot: string | null;
+  priceCents: number | null;
+}
+
 export interface ApiOptions extends RequestInit {
   token?: string | null;
   on401?: () => void;

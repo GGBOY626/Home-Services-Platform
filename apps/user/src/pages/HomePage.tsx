@@ -100,12 +100,11 @@ export function HomePage() {
           scheduledAt,
         }),
       });
-      addToast('success', 'Order placed');
       setBookOpen(false);
       setBookingCategory(null);
       setSelectedItemId(null);
       setNotes('');
-      navigate('/orders', { state: { highlightOrderId: order.id } });
+      navigate(`/orders/${order.id}?pay=1`);
     } catch (err) {
       addToast('error', 'Failed to place order', err instanceof Error ? err.message : 'Unknown error');
     } finally {

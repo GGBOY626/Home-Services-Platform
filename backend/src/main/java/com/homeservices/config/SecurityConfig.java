@@ -50,6 +50,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/user/**").hasRole("USER")
                 .requestMatchers("/api/worker/**").hasRole("WORKER")
                 .requestMatchers("/api/payment/**").hasRole("USER")
+                .requestMatchers("/api/user/orders/*/refund-request").hasRole("USER")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(requestIdFilter, UsernamePasswordAuthenticationFilter.class)

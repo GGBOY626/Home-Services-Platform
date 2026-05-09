@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import {
   Elements,
@@ -85,22 +85,24 @@ interface PaymentSectionProps {
   orderId: string;
   priceCents: number;
   token: string | null;
+  autoOpen?: boolean;
   onPaymentComplete: () => void;
 }
 
-export function PaymentSection({ orderId, priceCents, token, onPaymentComplete }: PaymentSectionProps) {
+export function PaymentSection({ orderId, priceCents, token, autoOpen = false, onPaymentComplete }: PaymentSectionProps) {
   const { addToast } = useToast();
   const [intentData, setIntentData] = useState<CreatePaymentIntentResponse | null>(null);
   const [stripePromise, setStripePromise] = useState<ReturnType<typeof loadStripe> | null>(null);
   const [loading, setLoading] = useState(false);
   const [initiated, setInitiated] = useState(false);
 
-  const handleInitiate = async () => {
+  const handleInitiate = async (signal?: AbortSignal) => {
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/payment/create-intent/${orderId}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
+        signal,
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -111,11 +113,21 @@ export function PaymentSection({ orderId, priceCents, token, onPaymentComplete }
       setStripePromise(loadStripe(data.publishableKey));
       setInitiated(true);
     } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       addToast('error', 'Could not initialise payment', err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
   };
+
+  // Auto-open payment form when redirected from order creation (?pay=1)
+  // AbortController cleanup prevents React StrictMode's double-invoke from sending two concurrent requests.
+  useEffect(() => {
+    if (!autoOpen || initiated) return;
+    const controller = new AbortController();
+    handleInitiate(controller.signal);
+    return () => controller.abort();
+  }, [autoOpen]);
 
   if (!initiated) {
     return (
@@ -124,7 +136,7 @@ export function PaymentSection({ orderId, priceCents, token, onPaymentComplete }
         <p className="text-sm text-neutral-500 mb-4">
           Your order is placed. Complete payment to confirm your booking.
         </p>
-        <Button onClick={handleInitiate} disabled={loading}>
+        <Button onClick={() => handleInitiate()} disabled={loading}>
           {loading ? 'Loading…' : `Pay NZD ${(priceCents / 100).toFixed(2)}`}
         </Button>
       </div>

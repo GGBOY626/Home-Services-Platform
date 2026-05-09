@@ -1,8 +1,11 @@
 package com.homeservices.controller;
 
 import com.homeservices.domain.Order;
+import com.homeservices.domain.OrderStatus;
+import com.homeservices.domain.PaymentStatus;
 import com.homeservices.dto.CancelRequest;
 import com.homeservices.dto.CompletionProofDTO;
+import com.homeservices.dto.RefundRequestDTO;
 import com.homeservices.dto.CreateOrderRequest;
 import com.homeservices.dto.OrderResponse;
 import com.homeservices.dto.OrderStatusHistoryItem;
@@ -10,12 +13,15 @@ import com.homeservices.dto.RescheduleRequest;
 import com.homeservices.repository.OrderRepository;
 import com.homeservices.security.JwtPrincipal;
 import com.homeservices.service.OrderService;
+import com.homeservices.service.RefundRequestService;
+import com.homeservices.service.StripeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -33,6 +39,8 @@ public class UserOrderController {
     private final OrderService orderService;
     private final OrderRepository orderRepository;
     private final com.homeservices.service.CompletionProofService completionProofService;
+    private final StripeService stripeService;
+    private final RefundRequestService refundRequestService;
 
     @PostMapping
     @Operation(summary = "Create a new order")
@@ -45,7 +53,7 @@ public class UserOrderController {
     @GetMapping
     @Operation(summary = "List my orders")
     public ResponseEntity<Page<OrderResponse>> list(@AuthenticationPrincipal JwtPrincipal principal,
-                                                      @PageableDefault(size = 20) Pageable pageable) {
+                                                      @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(orderService.findByCreatedBy(principal.id(), pageable, principal));
     }
 
@@ -69,7 +77,7 @@ public class UserOrderController {
     }
 
     @PostMapping("/{id}/cancel")
-    @Operation(summary = "Cancel order (only when PLACED or MERCHANT_ASSIGNED)")
+    @Operation(summary = "Cancel order. PLACED+PAID → auto-refund. MERCHANT_ASSIGNED+PAID → create refund request for admin.")
     public ResponseEntity<OrderResponse> cancel(@PathVariable UUID id,
                                                  @RequestBody(required = false) CancelRequest request,
                                                  @AuthenticationPrincipal JwtPrincipal principal) {
@@ -77,8 +85,35 @@ public class UserOrderController {
         if (order == null || !order.getCreatedBy().equals(principal.id())) {
             return ResponseEntity.notFound().build();
         }
-        OrderResponse response = orderService.cancelByUser(id, request != null ? request.getReason() : null, principal);
+        OrderStatus preStatus = order.getStatus();
+        PaymentStatus prePayment = order.getPaymentStatus();
+        String reason = request != null ? request.getReason() : null;
+
+        OrderResponse response = orderService.cancelByUser(id, reason, principal);
+
+        if (prePayment == PaymentStatus.PAID) {
+            if (preStatus == OrderStatus.PLACED) {
+                // Auto-refund: order was paid but not yet dispatched
+                response = stripeService.issueRefund(id, null, "User cancelled before merchant assignment");
+            } else if (preStatus == OrderStatus.MERCHANT_ASSIGNED) {
+                // Create pending refund request for admin to decide
+                refundRequestService.createForCancelledOrder(id, principal.id(), reason);
+            }
+        }
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}/refund-request")
+    @Operation(summary = "Get refund request status for an order (if any)")
+    public ResponseEntity<RefundRequestDTO> getRefundRequest(@PathVariable UUID id,
+                                                              @AuthenticationPrincipal JwtPrincipal principal) {
+        Order order = orderRepository.findById(id).orElse(null);
+        if (order == null || !order.getCreatedBy().equals(principal.id())) {
+            return ResponseEntity.notFound().build();
+        }
+        return refundRequestService.findByOrderId(id)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping("/{id}/reschedule")

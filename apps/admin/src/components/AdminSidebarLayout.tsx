@@ -12,6 +12,7 @@ const navItems = [
   { path: '/applications/workers', label: 'Worker Applications' },
   { path: '/applications/merchants', label: 'Merchant Applications' },
   { path: '/payments', label: 'Payments' },
+  { path: '/refund-requests', label: 'Refund Requests' },
   { path: '/audit', label: 'Audit Logs' },
   { path: '/settings', label: 'Settings' },
 ];
