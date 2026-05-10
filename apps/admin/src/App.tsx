@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './auth';
 import { LoginPage } from './pages/LoginPage';
 import { Layout } from './Layout';
+import { DashboardPage } from './pages/DashboardPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { MerchantsPage } from './pages/MerchantsPage';
 import { CatalogPage } from './pages/CatalogPage';
@@ -23,9 +24,10 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/login" element={token ? <Navigate to="/orders" replace /> : <LoginPage />} />
+      <Route path="/login" element={token ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
       <Route path="/" element={token ? <Layout /> : <Navigate to="/login" replace />}>
-        <Route index element={<Navigate to="/orders" replace />} />
+        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route path="dashboard" element={<DashboardPage />} />
         <Route path="orders" element={<OrdersPage />} />
         <Route path="ratings" element={<RatingsPage />} />
         <Route path="complaints" element={<ComplaintsPage />} />
@@ -43,7 +45,7 @@ export default function App() {
         <Route path="payments" element={<PaymentsPage />} />
         <Route path="refund-requests" element={<RefundRequestsPage />} />
       </Route>
-      <Route path="*" element={<Navigate to="/orders" replace />} />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 }

@@ -3,6 +3,7 @@ import { useAuth } from '../auth';
 import { Button } from '@home-services/ui';
 
 const navItems = [
+  { path: '/dashboard', label: 'Dashboard' },
   { path: '/orders', label: 'Orders' },
   { path: '/ratings', label: 'Ratings' },
   { path: '/complaints', label: 'Complaints' },
@@ -30,7 +31,8 @@ export function AdminSidebarLayout({ children }: { children: React.ReactNode }) 
         </div>
         <nav className="flex-1 space-y-0.5 p-2 overflow-y-auto">
           {navItems.map(({ path, label }) => {
-            const active = location.pathname === path || (path !== '/orders' && location.pathname.startsWith(path));
+            const isPrefix = path === '/finance' || path === '/applications';
+            const active = location.pathname === path || (isPrefix && location.pathname.startsWith(path));
             return (
               <Link
                 key={path}
