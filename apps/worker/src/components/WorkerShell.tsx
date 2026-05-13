@@ -18,7 +18,7 @@ export function WorkerShell({ children }: { children: React.ReactNode }) {
           <span className="text-xl">👤</span>
         </Link>
       </header>
-      <main className="flex-1 pb-20 bg-[var(--app-bg)]">{children}</main>
+      <main className="flex-1 pb-24 bg-[var(--app-bg)]">{children}</main>
       <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--app-border)] bg-[var(--app-surface)] shadow-[0_-1px_4px_rgba(0,0,0,0.06)]">
         <div className="flex justify-around py-2">
           {navItems.map(({ path, label, icon }) => {
@@ -37,6 +37,11 @@ export function WorkerShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </div>
+        <p className="pb-1 text-center">
+          <a href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer" className="text-[9px] text-[var(--app-text-muted)]">
+            浙ICP备2026030792号
+          </a>
+        </p>
       </nav>
     </div>
   );

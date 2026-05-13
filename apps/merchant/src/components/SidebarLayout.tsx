@@ -68,6 +68,11 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
           <h1 className="text-lg font-semibold text-[var(--app-text)]">Merchant Portal</h1>
         </header>
         <main className="flex-1 p-6">{children}</main>
+        <footer className="border-t border-[var(--app-border)] py-2 text-center">
+          <a href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer" className="text-[10px] text-[var(--app-text-muted)] hover:underline">
+            浙ICP备2026030792号
+          </a>
+        </footer>
       </div>
     </div>
   );
