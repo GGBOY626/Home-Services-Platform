@@ -37,11 +37,15 @@ export function WorkerShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </div>
-        <p className="pb-1 text-center">
+        <div className="pb-1 flex items-center justify-center gap-2 flex-wrap">
           <a href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer" className="text-[9px] text-[var(--app-text-muted)]">
             浙ICP备2026030792号
           </a>
-        </p>
+          <a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=33011002019522" target="_blank" rel="noreferrer" className="text-[9px] text-[var(--app-text-muted)] flex items-center gap-0.5">
+            <img src="https://www.beian.gov.cn/img/ghs.png" alt="" className="h-2.5 w-2.5" />
+            浙公网安备33011002019522号
+          </a>
+        </div>
       </nav>
     </div>
   );
