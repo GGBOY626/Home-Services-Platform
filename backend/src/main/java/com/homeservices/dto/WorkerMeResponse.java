@@ -15,4 +15,7 @@ public class WorkerMeResponse {
     private String displayName;
     private String availability;
     private Instant lastSeenAt;
+    private String homeAddress;
+    private Double homeLat;
+    private Double homeLng;
 }

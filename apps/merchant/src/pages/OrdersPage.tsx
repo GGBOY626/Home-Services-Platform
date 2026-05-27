@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useApi } from '../lib/useApi';
+import { useAuth } from '../auth';
 import { useToast } from '@home-services/ui';
 import { StatusBadge } from '../components/StatusBadge';
 import { OrderDrawer } from '../components/OrderDrawer';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { formatDate, formatCurrency, formatScheduled } from '../lib/format';
-import type { Order } from '@home-services/shared';
-import type { WorkerSummary } from '@home-services/shared';
+import { formatDate, formatCurrency, formatScheduled, haversineKm, formatDistance, api as sharedApi } from '@home-services/shared';
+import type { Order, WorkerSummary, MerchantMeResponse } from '@home-services/shared';
 
 interface PageRes {
   content: Order[];
@@ -17,9 +17,11 @@ export function OrdersPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const openId = searchParams.get('open');
   const { api } = useApi();
+  const { token } = useAuth();
   const { addToast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [workers, setWorkers] = useState<WorkerSummary[]>([]);
+  const [merchantMe, setMerchantMe] = useState<MerchantMeResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [assignLoading, setAssignLoading] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -33,17 +35,19 @@ export function OrdersPage() {
     Promise.all([
       api<PageRes>('/merchant/orders?page=0&size=50'),
       api<WorkerSummary[]>('/merchant/workers?availability=ONLINE'),
+      sharedApi<MerchantMeResponse>('/merchant/me', { token }),
     ])
-      .then(([ordersRes, workersRes]) => {
+      .then(([ordersRes, workersRes, meRes]) => {
         setOrders(ordersRes.content);
         setWorkers(Array.isArray(workersRes) ? workersRes : []);
+        setMerchantMe(meRes);
       })
       .catch((err) => {
         if (err?.message === 'Unauthorized') return;
         addToast('error', 'Failed to load', err.message);
       })
       .finally(() => setLoading(false));
-  }, [api, addToast]);
+  }, [api, addToast, token]);
 
   const closeDrawer = () => setSearchParams({});
 
@@ -119,6 +123,7 @@ export function OrdersPage() {
               <th className="px-4 py-3 text-left font-medium text-neutral-700">Status</th>
               <th className="px-4 py-3 text-left font-medium text-neutral-700">Service</th>
               <th className="px-4 py-3 text-left font-medium text-neutral-700">Address</th>
+              <th className="px-4 py-3 text-left font-medium text-neutral-700">Distance</th>
               <th className="px-4 py-3 text-left font-medium text-neutral-700">Scheduled</th>
               <th className="px-4 py-3 text-left font-medium text-neutral-700">Created</th>
               <th className="px-4 py-3 text-left font-medium text-neutral-700">Actions</th>
@@ -136,6 +141,17 @@ export function OrdersPage() {
                 </td>
                 <td className="px-4 py-3 text-neutral-700">{order.serviceNameSnapshot} · {formatCurrency(order.priceCents)}</td>
                 <td className="px-4 py-3 text-neutral-900 truncate max-w-[180px]">{order.address}</td>
+                <td className="px-4 py-3 text-sm">
+                  {merchantMe?.businessLat != null && merchantMe?.businessLng != null && order.addressLat != null && order.addressLng != null ? (
+                    <span className="text-blue-600 font-medium">
+                      📍 {formatDistance(haversineKm(merchantMe.businessLat, merchantMe.businessLng, order.addressLat, order.addressLng))}
+                    </span>
+                  ) : merchantMe?.businessLat == null ? (
+                    <a href="/settings" className="text-amber-600 text-xs hover:underline">Set address</a>
+                  ) : (
+                    <span className="text-neutral-400 text-xs">No coordinates</span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-neutral-600">{formatScheduled(order.scheduledAt)}</td>
                 <td className="px-4 py-3 text-neutral-500">{formatDate(order.createdAt)}</td>
                 <td className="px-4 py-3">

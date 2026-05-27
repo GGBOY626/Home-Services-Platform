@@ -51,6 +51,18 @@ public class WorkerProfileService {
         return toMeResponse(profile);
     }
 
+    @Transactional
+    public WorkerMeResponse setLocation(String homeAddress, Double homeLat, Double homeLng, JwtPrincipal principal) {
+        WorkerProfile profile = currentUserService.getWorkerProfile(principal)
+            .orElseThrow(() -> new IllegalStateException("Worker profile not found"));
+        profile.setHomeAddress(homeAddress);
+        profile.setHomeLat(homeLat);
+        profile.setHomeLng(homeLng);
+        profile.setUpdatedAt(Instant.now());
+        profile = workerProfileRepository.save(profile);
+        return toMeResponse(profile);
+    }
+
     private static WorkerMeResponse toMeResponse(WorkerProfile p) {
         return WorkerMeResponse.builder()
             .id(p.getId())
@@ -58,6 +70,9 @@ public class WorkerProfileService {
             .displayName(p.getDisplayName())
             .availability(p.getAvailability().name())
             .lastSeenAt(p.getLastSeenAt())
+            .homeAddress(p.getHomeAddress())
+            .homeLat(p.getHomeLat())
+            .homeLng(p.getHomeLng())
             .build();
     }
 }

@@ -39,4 +39,7 @@ public class OrderResponse {
     private Instant paidAt;
     private Integer refundedAmountCents;
     private Instant refundedAt;
+
+    private Double addressLat;
+    private Double addressLng;
 }

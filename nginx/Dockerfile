@@ -30,6 +30,8 @@ RUN pnpm install --frozen-lockfile --prod=false
 
 # Build each app: cwd = app dir (so index.html + config resolve), vite binary from root node_modules
 ENV VITE_API_BASE=/api
+ARG VITE_MAPBOX_TOKEN
+ENV VITE_MAPBOX_TOKEN=$VITE_MAPBOX_TOKEN
 RUN cd /app/apps/user    && VITE_BASE_PATH=/user/    ../../node_modules/.bin/vite build
 RUN cd /app/apps/admin   && VITE_BASE_PATH=/admin/   ../../node_modules/.bin/vite build
 RUN cd /app/apps/merchant && VITE_BASE_PATH=/merchant/ ../../node_modules/.bin/vite build

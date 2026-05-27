@@ -98,6 +98,12 @@ public class Order {
     @Column(name = "scheduled_at", nullable = false)
     private Instant scheduledAt;
 
+    @Column(name = "address_lat")
+    private Double addressLat;
+
+    @Column(name = "address_lng")
+    private Double addressLng;
+
     @Column(name = "stripe_payment_intent_id", length = 100)
     private String stripePaymentIntentId;
 

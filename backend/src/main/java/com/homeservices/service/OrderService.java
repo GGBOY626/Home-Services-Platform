@@ -76,6 +76,8 @@ public class OrderService {
             .priceCents(item.getBasePriceCents())
             .durationMinutesSnapshot(item.getDurationMinutes())
             .address(request.getAddress().trim())
+            .addressLat(request.getAddressLat())
+            .addressLng(request.getAddressLng())
             .notes(request.getNotes() != null ? request.getNotes().trim() : null)
             .status(OrderStatus.PLACED)
             .createdBy(principal.id())
@@ -586,6 +588,8 @@ public class OrderService {
             .paidAt(order.getPaidAt())
             .refundedAmountCents(order.getRefundedAmountCents())
             .refundedAt(order.getRefundedAt())
+            .addressLat(order.getAddressLat())
+            .addressLng(order.getAddressLng())
             .build();
     }
 }

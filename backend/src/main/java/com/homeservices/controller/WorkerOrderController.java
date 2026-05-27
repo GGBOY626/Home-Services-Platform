@@ -4,6 +4,7 @@ import com.homeservices.dto.CompletionProofDTO;
 import com.homeservices.dto.OrderResponse;
 import com.homeservices.dto.RejectRequest;
 import com.homeservices.dto.SetAvailabilityRequest;
+import com.homeservices.dto.UpdateLocationRequest;
 import com.homeservices.dto.WorkerMeResponse;
 import com.homeservices.security.JwtPrincipal;
 import com.homeservices.service.CompletionProofService;
@@ -41,6 +42,14 @@ public class WorkerOrderController {
     @Operation(summary = "Get my worker profile (includes availability)")
     public ResponseEntity<WorkerMeResponse> me(@AuthenticationPrincipal JwtPrincipal principal) {
         return ResponseEntity.ok(workerProfileService.getMe(principal));
+    }
+
+    @PatchMapping("/me/location")
+    @Operation(summary = "Set worker home address and coordinates")
+    public ResponseEntity<WorkerMeResponse> setLocation(
+            @Valid @RequestBody UpdateLocationRequest request,
+            @AuthenticationPrincipal JwtPrincipal principal) {
+        return ResponseEntity.ok(workerProfileService.setLocation(request.getAddress(), request.getLat(), request.getLng(), principal));
     }
 
     @PostMapping("/availability")

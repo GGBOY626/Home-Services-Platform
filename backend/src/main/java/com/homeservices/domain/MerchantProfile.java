@@ -28,4 +28,13 @@ public class MerchantProfile {
 
     @Column(name = "display_name", nullable = false, length = 255)
     private String displayName;
+
+    @Column(name = "business_address", length = 500)
+    private String businessAddress;
+
+    @Column(name = "business_lat")
+    private Double businessLat;
+
+    @Column(name = "business_lng")
+    private Double businessLng;
 }

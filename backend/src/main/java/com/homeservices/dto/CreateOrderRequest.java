@@ -17,4 +17,7 @@ public class CreateOrderRequest {
 
     @NotBlank(message = "Scheduled appointment time is required")
     private String scheduledAt;
+
+    private Double addressLat;
+    private Double addressLng;
 }

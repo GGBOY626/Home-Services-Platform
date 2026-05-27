@@ -8,6 +8,7 @@ import { Dialog, DialogFooter } from '@home-services/ui';
 import { useApi } from '../lib/useApi';
 import { useToast } from '@home-services/ui';
 import { ServiceCard } from '../components/ServiceCard';
+import { AddressAutocomplete } from '../components/AddressAutocomplete';
 import { formatCurrency } from '@home-services/shared';
 import type { Order, CategoryWithItemsDTO } from '@home-services/shared';
 
@@ -33,6 +34,8 @@ function nextDayAt10(): { date: string; time: string } {
 
 export function HomePage() {
   const [address, setAddress] = useState('');
+  const [addressLat, setAddressLat] = useState<number | null>(null);
+  const [addressLng, setAddressLng] = useState<number | null>(null);
   const [bookOpen, setBookOpen] = useState(false);
   const [notes, setNotes] = useState('');
   const [scheduleDate, setScheduleDate] = useState('');
@@ -96,6 +99,8 @@ export function HomePage() {
         body: JSON.stringify({
           serviceItemId: selectedItemId,
           address: address.trim(),
+          addressLat: addressLat ?? undefined,
+          addressLng: addressLng ?? undefined,
           notes: notes.trim() || null,
           scheduledAt,
         }),
@@ -119,13 +124,14 @@ export function HomePage() {
           <Label htmlFor="service-address" className="text-base font-medium text-neutral-700">
             Service Address
           </Label>
-          <Input
-            id="service-address"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="Enter your address"
-            className="mt-2 h-12 rounded-xl text-base"
-          />
+          <div className="mt-2">
+            <AddressAutocomplete
+              id="service-address"
+              value={address}
+              onChange={(addr, lat, lng) => { setAddress(addr); setAddressLat(lat); setAddressLng(lng); }}
+              placeholder="Enter your address"
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -209,12 +215,11 @@ export function HomePage() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="book-address">Address</Label>
-            <Input
+            <AddressAutocomplete
               id="book-address"
               value={address}
-              onChange={(e) => setAddress(e.target.value)}
+              onChange={(addr, lat, lng) => { setAddress(addr); setAddressLat(lat); setAddressLng(lng); }}
               placeholder="Service address"
-              className="rounded-xl"
             />
           </div>
           <div className="space-y-2">

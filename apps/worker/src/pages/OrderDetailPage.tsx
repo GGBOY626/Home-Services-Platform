@@ -1,9 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import type { Order, CompletionProof } from '@home-services/shared';
+import type { Order, CompletionProof, WorkerMeResponse } from '@home-services/shared';
+import { haversineKm, formatDistance, api as sharedApi } from '@home-services/shared';
 import { Card, CardContent } from '@home-services/ui';
 import { Button } from '@home-services/ui';
 import { useApi } from '../lib/useApi';
+import { useAuth } from '../auth';
 import { useToast } from '@home-services/ui';
 import { StatusBadge } from '../components/StatusBadge';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -14,9 +16,11 @@ const LABELS = ['', 'BEFORE', 'AFTER'] as const;
 export function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { api, apiMultipart } = useApi();
+  const { token } = useAuth();
   const navigate = useNavigate();
   const { addToast } = useToast();
   const [order, setOrder] = useState<Order | null>(null);
+  const [workerMe, setWorkerMe] = useState<WorkerMeResponse | null>(null);
   const [proof, setProof] = useState<CompletionProof | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -35,7 +39,8 @@ export function OrderDetailPage() {
         navigate('/');
       })
       .finally(() => setLoading(false));
-  }, [id, navigate, addToast, api]);
+    sharedApi<WorkerMeResponse>('/worker/me', { token }).then(setWorkerMe).catch(() => {});
+  }, [id, navigate, addToast, api, token]);
 
   // Only fetch proof when COMPLETED (to show read-only). For ACCEPTED, no proof exists yet.
   useEffect(() => {
@@ -145,6 +150,28 @@ export function OrderDetailPage() {
           <p className="text-sm text-[var(--app-text-muted)]">{formatCurrency(order.priceCents)} · {order.durationMinutesSnapshot} min</p>
           <p className="text-2xl font-bold text-[var(--app-text)]">{formatScheduled(order.scheduledAt)}</p>
           <p className="mt-1 text-lg font-semibold text-[var(--app-text)]">{order.address}</p>
+          {/* Distance from worker's home to job site */}
+          {(() => {
+            const hasOrder = order.addressLat != null && order.addressLng != null;
+            const hasWorker = workerMe?.homeLat != null && workerMe?.homeLng != null;
+            if (hasOrder && hasWorker) {
+              const km = haversineKm(workerMe!.homeLat!, workerMe!.homeLng!, order.addressLat!, order.addressLng!);
+              return (
+                <p className="mt-1 text-sm text-[var(--app-primary)] font-medium">
+                  📍 {formatDistance(km)} from your home
+                </p>
+              );
+            }
+            if (!hasWorker) {
+              return (
+                <p className="mt-1 text-sm text-amber-600">
+                  📍 Distance unavailable —{' '}
+                  <a href="/profile" className="underline hover:no-underline">set your home address</a> to see distance
+                </p>
+              );
+            }
+            return null;
+          })()}
           {order.notes && (
             <p className="mt-3 text-[var(--app-text-muted)]"><span className="font-medium text-[var(--app-text)]">Notes:</span> {order.notes}</p>
           )}

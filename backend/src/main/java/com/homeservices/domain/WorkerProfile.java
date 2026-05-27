@@ -39,6 +39,15 @@ public class WorkerProfile {
     @Builder.Default
     private WorkerAvailability availability = WorkerAvailability.OFFLINE;
 
+    @Column(name = "home_address", length = 500)
+    private String homeAddress;
+
+    @Column(name = "home_lat")
+    private Double homeLat;
+
+    @Column(name = "home_lng")
+    private Double homeLng;
+
     @Column(name = "last_seen_at")
     private Instant lastSeenAt;
 

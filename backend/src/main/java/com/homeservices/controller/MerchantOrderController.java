@@ -3,11 +3,15 @@ package com.homeservices.controller;
 import com.homeservices.config.AuditLogging;
 import com.homeservices.domain.WorkerAvailability;
 import com.homeservices.domain.WorkerProfile;
+import com.homeservices.domain.MerchantProfile;
 import com.homeservices.dto.AssignWorkerRequest;
 import com.homeservices.dto.CompletionProofDTO;
+import com.homeservices.dto.MerchantMeResponse;
 import com.homeservices.dto.OrderResponse;
 import com.homeservices.dto.RejectRequest;
+import com.homeservices.dto.UpdateLocationRequest;
 import com.homeservices.dto.WorkerSummaryResponse;
+import com.homeservices.repository.MerchantProfileRepository;
 import com.homeservices.repository.WorkerProfileRepository;
 import com.homeservices.security.JwtPrincipal;
 import com.homeservices.service.CurrentUserService;
@@ -37,6 +41,40 @@ public class MerchantOrderController {
     private final com.homeservices.service.CompletionProofService completionProofService;
     private final CurrentUserService currentUserService;
     private final WorkerProfileRepository workerProfileRepository;
+    private final MerchantProfileRepository merchantProfileRepository;
+
+    @GetMapping("/me")
+    @Operation(summary = "Get my merchant profile (includes business location)")
+    public ResponseEntity<MerchantMeResponse> me(@AuthenticationPrincipal JwtPrincipal principal) {
+        MerchantProfile profile = merchantProfileRepository.findByAccountId(principal.id())
+            .orElseThrow(() -> new IllegalStateException("Merchant profile not found"));
+        return ResponseEntity.ok(toMeResponse(profile));
+    }
+
+    @PatchMapping("/me/location")
+    @Operation(summary = "Set merchant business address and coordinates")
+    public ResponseEntity<MerchantMeResponse> setLocation(
+            @Valid @RequestBody UpdateLocationRequest request,
+            @AuthenticationPrincipal JwtPrincipal principal) {
+        MerchantProfile profile = merchantProfileRepository.findByAccountId(principal.id())
+            .orElseThrow(() -> new IllegalStateException("Merchant profile not found"));
+        profile.setBusinessAddress(request.getAddress());
+        profile.setBusinessLat(request.getLat());
+        profile.setBusinessLng(request.getLng());
+        merchantProfileRepository.save(profile);
+        return ResponseEntity.ok(toMeResponse(profile));
+    }
+
+    private static MerchantMeResponse toMeResponse(MerchantProfile p) {
+        return MerchantMeResponse.builder()
+            .id(p.getId())
+            .accountId(p.getAccountId())
+            .displayName(p.getDisplayName())
+            .businessAddress(p.getBusinessAddress())
+            .businessLat(p.getBusinessLat())
+            .businessLng(p.getBusinessLng())
+            .build();
+    }
 
     @GetMapping("/orders")
     @Operation(summary = "List orders assigned to my merchant")
