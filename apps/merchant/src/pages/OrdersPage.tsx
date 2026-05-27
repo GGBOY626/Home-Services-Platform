@@ -6,6 +6,7 @@ import { useToast } from '@home-services/ui';
 import { StatusBadge } from '../components/StatusBadge';
 import { OrderDrawer } from '../components/OrderDrawer';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { Link } from 'react-router-dom';
 import { formatDate, formatCurrency, formatScheduled, haversineKm, formatDistance, api as sharedApi } from '@home-services/shared';
 import type { Order, WorkerSummary, MerchantMeResponse } from '@home-services/shared';
 
@@ -147,7 +148,7 @@ export function OrdersPage() {
                       📍 {formatDistance(haversineKm(merchantMe.businessLat, merchantMe.businessLng, order.addressLat, order.addressLng))}
                     </span>
                   ) : merchantMe?.businessLat == null ? (
-                    <a href="/settings" className="text-amber-600 text-xs hover:underline">Set address</a>
+                    <Link to="/settings" className="text-amber-600 text-xs hover:underline">Set address</Link>
                   ) : (
                     <span className="text-neutral-400 text-xs">No coordinates</span>
                   )}

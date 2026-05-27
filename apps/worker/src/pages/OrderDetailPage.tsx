@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import type { Order, CompletionProof, WorkerMeResponse } from '@home-services/shared';
 import { haversineKm, formatDistance, api as sharedApi } from '@home-services/shared';
 import { Card, CardContent } from '@home-services/ui';
@@ -166,7 +166,7 @@ export function OrderDetailPage() {
               return (
                 <p className="mt-1 text-sm text-amber-600">
                   📍 Distance unavailable —{' '}
-                  <a href="/profile" className="underline hover:no-underline">set your home address</a> to see distance
+                  <Link to="/profile" className="underline hover:no-underline">set your home address</Link> to see distance
                 </p>
               );
             }
