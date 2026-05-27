@@ -19,7 +19,8 @@ export type PaymentStatus =
   | 'PAID'
   | 'REFUNDED'
   | 'PARTIALLY_REFUNDED'
-  | 'FAILED';
+  | 'FAILED'
+  | 'CASH_PENDING';
 
 export interface CreatePaymentIntentResponse {
   clientSecret: string;

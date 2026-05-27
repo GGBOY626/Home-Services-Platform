@@ -116,6 +116,18 @@ public class UserOrderController {
             .orElse(ResponseEntity.notFound().build());
     }
 
+    @PostMapping("/{id}/pay-cash")
+    @Operation(summary = "Select cash (offline) payment — skips online payment for this order")
+    public ResponseEntity<OrderResponse> payCash(@PathVariable UUID id,
+                                                  @AuthenticationPrincipal JwtPrincipal principal) {
+        Order order = orderRepository.findById(id).orElse(null);
+        if (order == null || !order.getCreatedBy().equals(principal.id())) {
+            return ResponseEntity.notFound().build();
+        }
+        OrderResponse response = orderService.markCashPayment(id, principal);
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/{id}/reschedule")
     @Operation(summary = "Reschedule appointment time (only when PLACED)")
     public ResponseEntity<OrderResponse> reschedule(@PathVariable UUID id,

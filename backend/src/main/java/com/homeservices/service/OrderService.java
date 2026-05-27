@@ -6,6 +6,7 @@ import com.homeservices.config.DispatchProperties;
 import com.homeservices.domain.Order;
 import com.homeservices.domain.OrderStatus;
 import com.homeservices.domain.OrderStatusHistory;
+import com.homeservices.domain.PaymentStatus;
 import com.homeservices.domain.Role;
 import com.homeservices.domain.ServiceItem;
 import com.homeservices.domain.WorkerAvailability;
@@ -501,6 +502,31 @@ public class OrderService {
         return workerProfileRepository.findByAccountId(principal.id())
             .map(WorkerProfile::getId)
             .orElse(null);
+    }
+
+    @Transactional
+    public OrderResponse markCashPayment(UUID orderId, JwtPrincipal principal) {
+        Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+        if (!order.getCreatedBy().equals(principal.id())) {
+            throw new IllegalArgumentException("Only the order creator can set payment method");
+        }
+        if (order.getStatus() != OrderStatus.PLACED) {
+            throw new IllegalStateException("Can only choose cash payment for PLACED orders. Current: " + order.getStatus());
+        }
+        if (order.getPaymentStatus() != PaymentStatus.UNPAID &&
+            order.getPaymentStatus() != PaymentStatus.FAILED &&
+            order.getPaymentStatus() != PaymentStatus.AWAITING) {
+            throw new IllegalStateException("Payment method cannot be changed. Current payment status: " + order.getPaymentStatus());
+        }
+        order.setPaymentStatus(PaymentStatus.CASH_PENDING);
+        order = orderRepository.save(order);
+        long dur = 0;
+        AuditLogging.logWithActor("UPDATE", "Order", "id=" + orderId + ",cashPayment",
+            principal.role().name(), principal.id().toString(), dur);
+        auditEventService.recordWithContext(principal.role().name(), principal.id().toString(), "ORDER_CASH_PAYMENT", "ORDER", orderId.toString(),
+            "User selected cash payment", null, (int) dur);
+        return toResponse(order);
     }
 
     @Transactional

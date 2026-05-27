@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import type {
   Order, CompletionProof, ComplaintCategory, ComplaintTicketDTO, RatingDTO, RefundRequestDTO,
 } from '@home-services/shared';
@@ -24,6 +24,7 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   REFUNDED: 'Refunded',
   PARTIALLY_REFUNDED: 'Partially refunded',
   FAILED: 'Payment failed',
+  CASH_PENDING: 'Pay with cash on service day',
 };
 
 const REFUND_STATUS_STYLE: Record<string, string> = {
@@ -34,8 +35,6 @@ const REFUND_STATUS_STYLE: Record<string, string> = {
 
 export function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const [searchParams] = useSearchParams();
-  const autoPay = searchParams.get('pay') === '1';
 
   const { token } = useAuth();
   const { api: apiRequest, apiMultipart } = useApi();
@@ -178,6 +177,7 @@ export function OrderDetailPage() {
   const isPaid = order.paymentStatus === 'PAID';
   const needsPayment = order.status === 'PLACED' &&
     (order.paymentStatus === 'UNPAID' || order.paymentStatus === 'FAILED' || order.paymentStatus === 'AWAITING');
+  const isCashPayment = order.paymentStatus === 'CASH_PENDING';
   const canCancel = order.status === 'PLACED' || order.status === 'MERCHANT_ASSIGNED';
   const canConfirm = order.status === 'COMPLETED';
   const terminal = ['CANCELLED', 'EXPIRED', 'CLOSED'].includes(order.status);
@@ -202,6 +202,11 @@ export function OrderDetailPage() {
       {needsPayment && (
         <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 flex items-center gap-2">
           <span className="text-amber-600 font-medium text-sm">⚠ Payment required to confirm your booking</span>
+        </div>
+      )}
+      {isCashPayment && order.status === 'PLACED' && (
+        <div className="mb-4 rounded-xl bg-blue-50 border border-blue-200 px-4 py-3 flex items-center gap-2">
+          <span className="text-blue-700 font-medium text-sm">Cash payment selected — please pay the service provider on the day of service</span>
         </div>
       )}
 
@@ -263,7 +268,6 @@ export function OrderDetailPage() {
               orderId={order.id}
               priceCents={order.priceCents}
               token={token}
-              autoOpen={autoPay}
               onPaymentComplete={loadOrder}
             />
           )}

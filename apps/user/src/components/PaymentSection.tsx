@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import {
   Elements,
@@ -85,16 +85,16 @@ interface PaymentSectionProps {
   orderId: string;
   priceCents: number;
   token: string | null;
-  autoOpen?: boolean;
   onPaymentComplete: () => void;
 }
 
-export function PaymentSection({ orderId, priceCents, token, autoOpen = false, onPaymentComplete }: PaymentSectionProps) {
+export function PaymentSection({ orderId, priceCents, token, onPaymentComplete }: PaymentSectionProps) {
   const { addToast } = useToast();
   const [intentData, setIntentData] = useState<CreatePaymentIntentResponse | null>(null);
   const [stripePromise, setStripePromise] = useState<ReturnType<typeof loadStripe> | null>(null);
   const [loading, setLoading] = useState(false);
   const [initiated, setInitiated] = useState(false);
+  const [cashLoading, setCashLoading] = useState(false);
 
   const handleInitiate = async (signal?: AbortSignal) => {
     setLoading(true);
@@ -120,25 +120,41 @@ export function PaymentSection({ orderId, priceCents, token, autoOpen = false, o
     }
   };
 
-  // Auto-open payment form when redirected from order creation (?pay=1)
-  // AbortController cleanup prevents React StrictMode's double-invoke from sending two concurrent requests.
-  useEffect(() => {
-    if (!autoOpen || initiated) return;
-    const controller = new AbortController();
-    handleInitiate(controller.signal);
-    return () => controller.abort();
-  }, [autoOpen]);
+  const handleCashPayment = async () => {
+    setCashLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/user/orders/${orderId}/pay-cash`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { message?: string }).message ?? res.statusText);
+      }
+      addToast('success', 'Cash payment selected', 'Please pay the service provider on the day of service.');
+      onPaymentComplete();
+    } catch (err) {
+      addToast('error', 'Failed to set cash payment', err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setCashLoading(false);
+    }
+  };
 
   if (!initiated) {
     return (
       <div className="mt-6 border-t border-neutral-200 pt-6">
         <p className="text-sm font-medium text-neutral-700 mb-3">Payment required</p>
         <p className="text-sm text-neutral-500 mb-4">
-          Your order is placed. Complete payment to confirm your booking.
+          Your order is placed. Pay online now, or choose to pay with cash on the day of service.
         </p>
-        <Button onClick={() => handleInitiate()} disabled={loading}>
-          {loading ? 'Loading…' : `Pay NZD ${(priceCents / 100).toFixed(2)}`}
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          <Button onClick={() => handleInitiate()} disabled={loading || cashLoading}>
+            {loading ? 'Loading…' : `Pay NZD ${(priceCents / 100).toFixed(2)}`}
+          </Button>
+          <Button variant="outline" onClick={handleCashPayment} disabled={loading || cashLoading}>
+            {cashLoading ? 'Saving…' : 'Pay with Cash'}
+          </Button>
+        </div>
       </div>
     );
   }
