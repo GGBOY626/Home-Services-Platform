@@ -142,6 +142,8 @@ public class MerchantOrderController {
             .displayName(w.getDisplayName())
             .availability(w.getAvailability().name())
             .lastSeenAt(w.getLastSeenAt())
+            .homeLat(w.getHomeLat())
+            .homeLng(w.getHomeLng())
             .build();
     }
 

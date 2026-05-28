@@ -15,4 +15,6 @@ public class WorkerSummaryResponse {
     private String displayName;
     private String availability;
     private Instant lastSeenAt;
+    private Double homeLat;
+    private Double homeLng;
 }

@@ -5,6 +5,7 @@ import { useToast } from '@home-services/ui';
 import { TaskCard } from '../components/TaskCard';
 import { Card, CardContent } from '@home-services/ui';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { haversineKm, formatDistance } from '@home-services/shared';
 import type { Order, WorkerMeResponse } from '@home-services/shared';
 
 interface PageRes {
@@ -59,6 +60,16 @@ export function TasksPage() {
 
   const active = orders.filter((o) => o.status === 'WORKER_ASSIGNED' || o.status === 'ACCEPTED');
   const current = active[0];
+
+  const currentDistance = (() => {
+    if (!current || !profile) return null;
+    const { homeLat, homeLng } = profile;
+    const { addressLat, addressLng } = current;
+    if (homeLat != null && homeLng != null && addressLat != null && addressLng != null) {
+      return formatDistance(haversineKm(homeLat, homeLng, addressLat, addressLng));
+    }
+    return null;
+  })();
 
   const handleAccept = async (id: string) => {
     setActionLoading(true);
@@ -143,6 +154,7 @@ export function TasksPage() {
           secondaryLabel={current.status === 'WORKER_ASSIGNED' ? 'Reject' : undefined}
           onSecondary={current.status === 'WORKER_ASSIGNED' ? () => setRejectOrderId(current.id) : undefined}
           primaryLoading={actionLoading}
+          distanceLine={currentDistance}
         />
       ) : (
         <Card className="rounded-xl border-[var(--app-border)] bg-[var(--app-surface)]">

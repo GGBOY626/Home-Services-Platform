@@ -180,15 +180,8 @@ export interface WorkerSummary {
   displayName: string;
   availability?: string;
   lastSeenAt?: string | null;
-}
-
-/** Worker profile from GET /api/worker/me */
-export interface WorkerMeResponse {
-  id: string;
-  accountId: string;
-  displayName: string;
-  availability: string;
-  lastSeenAt: string | null;
+  homeLat?: number | null;
+  homeLng?: number | null;
 }
 
 export interface AuthResponse {

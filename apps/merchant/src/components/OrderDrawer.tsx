@@ -2,7 +2,7 @@ import { Drawer } from '@home-services/ui';
 import { Button } from '@home-services/ui';
 import { StatusBadge } from './StatusBadge';
 import { CompletionProofSection } from './CompletionProofSection';
-import { formatDate, formatCurrency, formatScheduled } from '../lib/format';
+import { formatDate, formatCurrency, formatScheduled, haversineKm, formatDistance } from '@home-services/shared';
 import type { Order, CompletionProof } from '@home-services/shared';
 import type { WorkerSummary } from '@home-services/shared';
 
@@ -53,11 +53,18 @@ export function OrderDrawer({
               <p className="text-sm text-neutral-500">No online workers available.</p>
             ) : (
               <div className="flex flex-wrap gap-2">
-                {workers.map((w) => (
-                  <Button key={w.id} size="sm" onClick={() => onAssignWorker(w.id)} disabled={assignLoading}>
-                    {w.displayName}
-                  </Button>
-                ))}
+                {workers.map((w) => {
+                  const dist =
+                    w.homeLat != null && w.homeLng != null &&
+                    order.addressLat != null && order.addressLng != null
+                      ? formatDistance(haversineKm(w.homeLat, w.homeLng, order.addressLat, order.addressLng))
+                      : null;
+                  return (
+                    <Button key={w.id} size="sm" onClick={() => onAssignWorker(w.id)} disabled={assignLoading}>
+                      {w.displayName}{dist ? ` · ${dist}` : ''}
+                    </Button>
+                  );
+                })}
               </div>
             )}
           </div>

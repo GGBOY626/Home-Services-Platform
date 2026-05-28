@@ -12,6 +12,7 @@ export interface TaskCardProps {
   onSecondary?: () => void;
   primaryLoading?: boolean;
   secondaryLoading?: boolean;
+  distanceLine?: string | null;
 }
 
 export function TaskCard({
@@ -22,6 +23,7 @@ export function TaskCard({
   onSecondary,
   primaryLoading = false,
   secondaryLoading = false,
+  distanceLine,
 }: TaskCardProps) {
   return (
     <Card className="rounded-xl border-2 border-[var(--app-border)] bg-[var(--app-surface)] shadow-lg">
@@ -32,6 +34,9 @@ export function TaskCard({
         </div>
         <p className="text-2xl font-bold text-[var(--app-text)] leading-tight">{formatScheduled(order.scheduledAt)}</p>
         <p className="mt-1 text-lg font-semibold text-[var(--app-text)] leading-tight">{order.address}</p>
+        {distanceLine && (
+          <p className="mt-1 text-sm text-[var(--app-primary)] font-medium">📍 {distanceLine}</p>
+        )}
         {order.notes && (
           <p className="mt-3 text-base text-[var(--app-text-muted)]">
             <span className="font-medium text-[var(--app-text)]">Notes:</span> {order.notes}

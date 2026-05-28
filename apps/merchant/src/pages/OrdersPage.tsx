@@ -39,7 +39,7 @@ export function OrdersPage() {
       sharedApi<MerchantMeResponse>('/merchant/me', { token }),
     ])
       .then(([ordersRes, workersRes, meRes]) => {
-        setOrders(ordersRes.content);
+        setOrders([...ordersRes.content].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
         setWorkers(Array.isArray(workersRes) ? workersRes : []);
         setMerchantMe(meRes);
       })
