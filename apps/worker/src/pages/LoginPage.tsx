@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@home-services/ui';
 import { Button, Input, Label } from '@home-services/ui';
 import { useAuth } from '../auth';
@@ -42,9 +42,6 @@ export function LoginPage() {
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
             <Button type="submit" className="w-full bg-[var(--app-cta)] hover:bg-[var(--app-cta-hover)] text-white border-0" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</Button>
-            <p className="mt-4 text-center text-sm text-[var(--app-text-muted)]">
-              Want to join as a worker? <Link to="/apply" className="font-medium text-[var(--app-primary)] hover:underline">Apply here</Link>
-            </p>
           </form>
         </CardContent>
       </Card>

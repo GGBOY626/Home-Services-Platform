@@ -1,7 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './auth';
 import { LoginPage } from './pages/LoginPage';
-import { ApplyPage } from './pages/ApplyPage';
 import { Layout } from './Layout';
 import { TasksPage } from './pages/TasksPage';
 import { OrdersPage } from './pages/OrdersPage';
@@ -15,7 +14,6 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={token ? <Navigate to="/" replace /> : <LoginPage />} />
-      <Route path="/apply" element={<ApplyPage />} />
       <Route path="/" element={token ? <Layout /> : <Navigate to="/login" replace />}>
         <Route index element={<TasksPage />} />
         <Route path="orders" element={<OrdersPage />} />

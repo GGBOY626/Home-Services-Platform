@@ -1,17 +1,24 @@
 package com.homeservices.controller;
 
 import com.homeservices.config.AuditLogging;
+import com.homeservices.domain.AccountStatus;
+import com.homeservices.domain.Role;
+import com.homeservices.domain.UserAccount;
 import com.homeservices.domain.WorkerAvailability;
 import com.homeservices.domain.WorkerProfile;
 import com.homeservices.domain.MerchantProfile;
 import com.homeservices.dto.AssignWorkerRequest;
 import com.homeservices.dto.CompletionProofDTO;
+import com.homeservices.dto.CreateWorkerRequest;
+import com.homeservices.dto.CreateWorkerResponse;
 import com.homeservices.dto.MerchantMeResponse;
 import com.homeservices.dto.OrderResponse;
 import com.homeservices.dto.RejectRequest;
 import com.homeservices.dto.UpdateLocationRequest;
+import com.homeservices.dto.UpdateWorkerRequest;
 import com.homeservices.dto.WorkerSummaryResponse;
 import com.homeservices.repository.MerchantProfileRepository;
+import com.homeservices.repository.UserAccountRepository;
 import com.homeservices.repository.WorkerProfileRepository;
 import com.homeservices.security.JwtPrincipal;
 import com.homeservices.service.CurrentUserService;
@@ -23,10 +30,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -42,6 +54,17 @@ public class MerchantOrderController {
     private final CurrentUserService currentUserService;
     private final WorkerProfileRepository workerProfileRepository;
     private final MerchantProfileRepository merchantProfileRepository;
+    private final UserAccountRepository userAccountRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    private static final String CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+    private static final SecureRandom RANDOM = new SecureRandom();
+
+    private String generateTempPassword() {
+        StringBuilder sb = new StringBuilder(12);
+        for (int i = 0; i < 12; i++) sb.append(CHARS.charAt(RANDOM.nextInt(CHARS.length())));
+        return sb.toString();
+    }
 
     @GetMapping("/me")
     @Operation(summary = "Get my merchant profile (includes business location)")
@@ -167,5 +190,72 @@ public class MerchantOrderController {
             .orElseThrow(() -> new IllegalStateException("Merchant profile not found"));
         OrderResponse response = orderService.rejectByMerchant(id, request != null ? request.getReason() : null, merchantId, principal);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/workers")
+    @Operation(summary = "Create a new worker account directly under this merchant")
+    public ResponseEntity<CreateWorkerResponse> createWorker(
+            @Valid @RequestBody CreateWorkerRequest request,
+            @AuthenticationPrincipal JwtPrincipal principal) {
+        UUID merchantId = currentUserService.getMerchantId(principal)
+            .orElseThrow(() -> new IllegalStateException("Merchant profile not found"));
+        if (userAccountRepository.existsByEmail(request.getEmail())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
+        }
+        String tempPassword = generateTempPassword();
+        UserAccount account = UserAccount.builder()
+            .email(request.getEmail())
+            .passwordHash(passwordEncoder.encode(tempPassword))
+            .role(Role.WORKER)
+            .status(AccountStatus.ACTIVE)
+            .build();
+        account = userAccountRepository.save(account);
+        WorkerProfile profile = WorkerProfile.builder()
+            .accountId(account.getId())
+            .displayName(request.getDisplayName())
+            .merchantId(merchantId)
+            .availability(WorkerAvailability.ONLINE)
+            .updatedAt(Instant.now())
+            .build();
+        workerProfileRepository.save(profile);
+        return ResponseEntity.ok(CreateWorkerResponse.builder()
+            .worker(toWorkerSummary(profile))
+            .tempPassword(tempPassword)
+            .build());
+    }
+
+    @PatchMapping("/workers/{id}")
+    @Operation(summary = "Update worker display name")
+    public ResponseEntity<WorkerSummaryResponse> updateWorker(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateWorkerRequest request,
+            @AuthenticationPrincipal JwtPrincipal principal) {
+        UUID merchantId = currentUserService.getMerchantId(principal)
+            .orElseThrow(() -> new IllegalStateException("Merchant profile not found"));
+        WorkerProfile profile = workerProfileRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found"));
+        if (!merchantId.equals(profile.getMerchantId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your worker");
+        }
+        profile.setDisplayName(request.getDisplayName());
+        workerProfileRepository.save(profile);
+        return ResponseEntity.ok(toWorkerSummary(profile));
+    }
+
+    @DeleteMapping("/workers/{id}")
+    @Operation(summary = "Delete a worker account (must belong to this merchant)")
+    public ResponseEntity<Void> deleteWorker(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal JwtPrincipal principal) {
+        UUID merchantId = currentUserService.getMerchantId(principal)
+            .orElseThrow(() -> new IllegalStateException("Merchant profile not found"));
+        WorkerProfile profile = workerProfileRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found"));
+        if (!merchantId.equals(profile.getMerchantId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your worker");
+        }
+        workerProfileRepository.delete(profile);
+        userAccountRepository.deleteById(profile.getAccountId());
+        return ResponseEntity.noContent().build();
     }
 }

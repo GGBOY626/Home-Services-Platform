@@ -11,7 +11,6 @@ import { FinanceSummaryPage } from './pages/finance/FinanceSummaryPage';
 import { FinanceLedgersPage } from './pages/finance/FinanceLedgersPage';
 import { FinanceFeeRulesPage } from './pages/finance/FinanceFeeRulesPage';
 import { AuditPage } from './pages/AuditPage';
-import { WorkerApplicationsPage } from './pages/WorkerApplicationsPage';
 import { MerchantApplicationsPage } from './pages/MerchantApplicationsPage';
 import { ComplaintsPage } from './pages/ComplaintsPage';
 import { RatingsPage } from './pages/RatingsPage';
@@ -38,7 +37,6 @@ export default function App() {
           <Route path="fee-rules" element={<FinanceFeeRulesPage />} />
         </Route>
         <Route path="merchants" element={<MerchantsPage />} />
-        <Route path="applications/workers" element={<WorkerApplicationsPage />} />
         <Route path="applications/merchants" element={<MerchantApplicationsPage />} />
         <Route path="audit" element={<AuditPage />} />
         <Route path="settings" element={<SettingsPage />} />
