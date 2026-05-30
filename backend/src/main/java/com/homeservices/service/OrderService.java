@@ -397,7 +397,9 @@ public class OrderService {
                     .requestId("SYSTEM-JOB").actorRole("SYSTEM").action(AuditActions.ORDER_EXPIRE).entityType("ORDER").entityId(order.getId().toString())
                     .summary("Order expired: merchant assign timeout").metadata(java.util.Map.of("orderId", order.getId().toString())).durationMs((int)(System.currentTimeMillis() - start)).build());
             }
-            AuditLogging.logWithActor("UPDATE", "Order", "expiredCount=" + expired.size(), "SYSTEM", null, System.currentTimeMillis() - start);
+            if (!expired.isEmpty()) {
+                AuditLogging.logWithActor("UPDATE", "Order", "expiredCount=" + expired.size(), "SYSTEM", null, System.currentTimeMillis() - start);
+            }
             return expired.size();
         } finally {
             if (prevRequestId != null) {
@@ -427,7 +429,9 @@ public class OrderService {
                     .requestId("SYSTEM-JOB").actorRole("SYSTEM").action(AuditActions.ORDER_ROLLBACK_WORKER_ACCEPT_TIMEOUT).entityType("ORDER").entityId(order.getId().toString())
                     .summary("Order rollback: worker accept timeout").metadata(java.util.Map.of("orderId", order.getId().toString())).durationMs((int)(System.currentTimeMillis() - start)).build());
             }
-            AuditLogging.logWithActor("UPDATE", "Order", "rollbackCount=" + expired.size(), "SYSTEM", null, System.currentTimeMillis() - start);
+            if (!expired.isEmpty()) {
+                AuditLogging.logWithActor("UPDATE", "Order", "rollbackCount=" + expired.size(), "SYSTEM", null, System.currentTimeMillis() - start);
+            }
             return expired.size();
         } finally {
             if (prevRequestId != null) {

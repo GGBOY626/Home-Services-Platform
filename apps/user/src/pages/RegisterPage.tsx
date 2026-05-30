@@ -5,11 +5,15 @@ import { Button, Input, Label } from '@home-services/ui';
 import { useAuth } from '../auth';
 import { useToast } from '@home-services/ui';
 import { api, AuthResponse } from '@home-services/shared';
+import { AddressAutocomplete } from '../components/AddressAutocomplete';
 
 export function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [homeAddress, setHomeAddress] = useState('');
+  const [homeLat, setHomeLat] = useState<number | null>(null);
+  const [homeLng, setHomeLng] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const { setAuth } = useAuth();
   const navigate = useNavigate();
@@ -29,7 +33,13 @@ export function RegisterPage() {
     try {
       const data = await api<AuthResponse>('/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ email: email.trim(), password }),
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+          homeAddress: homeAddress.trim() || null,
+          homeLat: homeLat ?? null,
+          homeLng: homeLng ?? null,
+        }),
       });
       setAuth(data);
       addToast('success', 'Account created', 'Welcome. You are signed in.');
@@ -81,6 +91,21 @@ export function RegisterPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="home-address">
+                Home address <span className="text-neutral-400 font-normal">(optional — used as default for orders)</span>
+              </Label>
+              <AddressAutocomplete
+                id="home-address"
+                value={homeAddress}
+                onChange={(addr, lat, lng) => {
+                  setHomeAddress(addr);
+                  setHomeLat(lat);
+                  setHomeLng(lng);
+                }}
+                placeholder="Start typing your address…"
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>

@@ -90,7 +90,9 @@ public class LedgerService {
                 }
             }
             long dur = System.currentTimeMillis() - start;
-            AuditLogging.logWithActor("BACKFILL", "PayoutLedger", "created=" + created, "SYSTEM", null, dur);
+            if (created > 0) {
+                AuditLogging.logWithActor("BACKFILL", "PayoutLedger", "created=" + created, "SYSTEM", null, dur);
+            }
             auditEventService.recordSync(com.homeservices.dto.AuditEventCreate.builder()
                 .requestId("SYSTEM-JOB").actorRole("SYSTEM").action(AuditActions.LEDGER_BACKFILL).entityType("LEDGER").entityId(null)
                 .summary("Ledger backfill: created " + created).metadata(java.util.Map.of("created", created)).durationMs((int) dur).build());

@@ -3,10 +3,14 @@ package com.homeservices.controller;
 import com.homeservices.domain.Order;
 import com.homeservices.domain.PaymentStatus;
 import com.homeservices.dto.OrderResponse;
+import com.homeservices.dto.PaymentEventLogDTO;
 import com.homeservices.dto.PaymentSummaryDTO;
+import com.homeservices.dto.ReconciliationResultDTO;
 import com.homeservices.dto.RefundRequest;
 import com.homeservices.repository.OrderRepository;
+import com.homeservices.repository.PaymentEventLogRepository;
 import com.homeservices.security.JwtPrincipal;
+import com.homeservices.service.PaymentReconciliationService;
 import com.homeservices.service.StripeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,6 +34,8 @@ public class AdminPaymentController {
 
     private final StripeService stripeService;
     private final OrderRepository orderRepository;
+    private final PaymentEventLogRepository paymentEventLogRepository;
+    private final PaymentReconciliationService paymentReconciliationService;
 
     @GetMapping
     @Operation(summary = "List all orders with payment info (paginated)")
@@ -55,6 +61,34 @@ public class AdminPaymentController {
         String reason = request != null ? request.getReason() : null;
         OrderResponse response = stripeService.issueRefund(orderId, amountCents, reason);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{orderId}/events")
+    @Operation(summary = "Get payment event log for a specific order")
+    public ResponseEntity<List<PaymentEventLogDTO>> getPaymentEvents(@PathVariable UUID orderId) {
+        List<PaymentEventLogDTO> events = paymentEventLogRepository
+            .findByOrderIdOrderByCreatedAtAsc(orderId.toString())
+            .stream()
+            .map(e -> PaymentEventLogDTO.builder()
+                .id(e.getId())
+                .orderId(e.getOrderId())
+                .eventType(e.getEventType())
+                .oldStatus(e.getOldStatus())
+                .newStatus(e.getNewStatus())
+                .actor(e.getActor())
+                .stripeRef(e.getStripeRef())
+                .amountCents(e.getAmountCents())
+                .note(e.getNote())
+                .createdAt(e.getCreatedAt())
+                .build())
+            .toList();
+        return ResponseEntity.ok(events);
+    }
+
+    @PostMapping("/reconciliation")
+    @Operation(summary = "Trigger on-demand payment reconciliation against Stripe")
+    public ResponseEntity<ReconciliationResultDTO> runReconciliation() {
+        return ResponseEntity.ok(paymentReconciliationService.runAndReport());
     }
 
     private PaymentSummaryDTO toPaymentSummary(Order order) {

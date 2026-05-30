@@ -3,24 +3,30 @@ package com.homeservices.service;
 import com.homeservices.config.StripeProperties;
 import com.homeservices.domain.Order;
 import com.homeservices.domain.OrderStatus;
+import com.homeservices.domain.PaymentEventLog;
 import com.homeservices.domain.PaymentStatus;
+import com.homeservices.domain.StripeWebhookEvent;
 import com.homeservices.dto.CreatePaymentIntentResponse;
 import com.homeservices.dto.OrderResponse;
 import com.homeservices.repository.OrderRepository;
+import com.homeservices.repository.PaymentEventLogRepository;
+import com.homeservices.repository.StripeWebhookEventRepository;
 import com.stripe.Stripe;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
-import com.stripe.model.PaymentIntent;
-import com.stripe.model.Refund;
 import com.stripe.model.Event;
 import com.stripe.model.EventDataObjectDeserializer;
+import com.stripe.model.PaymentIntent;
+import com.stripe.model.Refund;
 import com.stripe.model.StripeObject;
+import com.stripe.net.RequestOptions;
 import com.stripe.net.Webhook;
 import com.stripe.param.PaymentIntentCreateParams;
 import com.stripe.param.RefundCreateParams;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,9 +39,13 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class StripeService {
 
+    private static final long WEBHOOK_TOLERANCE_SECONDS = 300; // 5 minutes
+
     private final StripeProperties stripeProperties;
     private final OrderRepository orderRepository;
     private final OrderService orderService;
+    private final StripeWebhookEventRepository webhookEventRepository;
+    private final PaymentEventLogRepository paymentEventLogRepository;
 
     @PostConstruct
     public void init() {
@@ -57,7 +67,7 @@ public class StripeService {
             throw new IllegalStateException("Order is already paid");
         }
 
-        // Reuse existing intent if one was already created
+        // Reuse existing intent if already created and still actionable
         if (order.getStripePaymentIntentId() != null && order.getPaymentStatus() == PaymentStatus.AWAITING) {
             try {
                 PaymentIntent existing = PaymentIntent.retrieve(order.getStripePaymentIntentId());
@@ -84,11 +94,20 @@ public class StripeService {
                 )
                 .build();
 
-            PaymentIntent intent = PaymentIntent.create(params);
+            // Idempotency key: same orderId always produces same intent request
+            RequestOptions options = RequestOptions.builder()
+                .setIdempotencyKey("intent-create-" + orderId)
+                .build();
 
+            PaymentIntent intent = PaymentIntent.create(params, options);
+
+            PaymentStatus oldStatus = order.getPaymentStatus();
             order.setStripePaymentIntentId(intent.getId());
             order.setPaymentStatus(PaymentStatus.AWAITING);
             orderRepository.save(order);
+
+            logEvent(orderId, "INTENT_CREATED", oldStatus, PaymentStatus.AWAITING,
+                "user:" + userId, intent.getId(), order.getPriceCents(), null);
 
             return buildResponse(intent, order);
         } catch (StripeException e) {
@@ -107,8 +126,25 @@ public class StripeService {
                 throw new SecurityException("Invalid Stripe webhook signature");
             }
         } else {
-            // No webhook secret configured — parse without verification (dev only)
             event = Event.GSON.fromJson(payload, Event.class);
+        }
+
+        // Timestamp validation: reject events older than 5 minutes (replay attack prevention)
+        long eventAge = Instant.now().getEpochSecond() - event.getCreated();
+        if (eventAge > WEBHOOK_TOLERANCE_SECONDS) {
+            log.warn("Rejecting stale webhook event {} type={} age={}s", event.getId(), event.getType(), eventAge);
+            return null;
+        }
+
+        // Idempotency: skip if already processed
+        try {
+            webhookEventRepository.save(StripeWebhookEvent.builder()
+                .eventId(event.getId())
+                .eventType(event.getType())
+                .build());
+        } catch (DataIntegrityViolationException e) {
+            log.info("Duplicate webhook event {} ignored", event.getId());
+            return null;
         }
 
         EventDataObjectDeserializer deserializer = event.getDataObjectDeserializer();
@@ -117,14 +153,15 @@ public class StripeService {
         switch (event.getType()) {
             case "payment_intent.succeeded" -> stripeObjectOpt.ifPresent(obj -> {
                 PaymentIntent intent = (PaymentIntent) obj;
-                markOrderPaid(intent.getId());
+                markOrderPaid(intent.getId(), "webhook:" + event.getId());
             });
             case "payment_intent.payment_failed" -> stripeObjectOpt.ifPresent(obj -> {
                 PaymentIntent intent = (PaymentIntent) obj;
-                markOrderFailed(intent.getId());
+                markOrderFailed(intent.getId(), "webhook:" + event.getId());
             });
             case "charge.refunded" -> {
-                // Handled by the explicit refund endpoint; webhook is supplemental
+                // Refund state already updated by the explicit issueRefund call; this is supplemental
+                log.debug("charge.refunded event received for event {}", event.getId());
             }
             default -> log.debug("Unhandled Stripe event type: {}", event.getType());
         }
@@ -154,15 +191,25 @@ public class StripeService {
                 refundBuilder.setReason(RefundCreateParams.Reason.FRAUDULENT);
             }
 
-            Refund refund = Refund.create(refundBuilder.build());
+            // Idempotency: same orderId + amount = same refund request
+            String idempotencyKey = "refund-" + orderId + (amountCents != null ? "-" + amountCents : "-full");
+            RequestOptions options = RequestOptions.builder().setIdempotencyKey(idempotencyKey).build();
+
+            Refund refund = Refund.create(refundBuilder.build(), options);
 
             boolean isPartial = amountCents != null && amountCents < order.getPriceCents();
+            PaymentStatus oldStatus = order.getPaymentStatus();
+            PaymentStatus newStatus = isPartial ? PaymentStatus.PARTIALLY_REFUNDED : PaymentStatus.REFUNDED;
 
             order.setStripeRefundId(refund.getId());
             order.setRefundedAmountCents(amountCents != null ? amountCents : order.getPriceCents());
             order.setRefundedAt(Instant.now());
-            order.setPaymentStatus(isPartial ? PaymentStatus.PARTIALLY_REFUNDED : PaymentStatus.REFUNDED);
+            order.setPaymentStatus(newStatus);
             order = orderRepository.save(order);
+
+            logEvent(orderId, "REFUND_ISSUED", oldStatus, newStatus,
+                "system", refund.getId(), amountCents != null ? amountCents : order.getPriceCents(),
+                reason);
 
             log.info("Refund {} issued for order {} ({})", refund.getId(), orderId, isPartial ? "partial" : "full");
             return orderService.toResponse(order);
@@ -172,7 +219,7 @@ public class StripeService {
         }
     }
 
-    /** Called by the user frontend after Stripe.confirmCardPayment succeeds (dev-friendly fallback). */
+    /** Called by the user frontend after Stripe.confirmCardPayment succeeds. */
     @Transactional
     public OrderResponse markOrderPaidByUser(UUID orderId, String paymentIntentId, UUID userId) {
         Order order = orderRepository.findById(orderId)
@@ -186,29 +233,71 @@ public class StripeService {
         if (order.getPaymentStatus() == PaymentStatus.PAID) {
             return orderService.toResponse(order);
         }
+
+        // Verify with Stripe that the intent is actually succeeded before trusting the client
+        try {
+            PaymentIntent intent = PaymentIntent.retrieve(paymentIntentId);
+            if (!"succeeded".equals(intent.getStatus())) {
+                throw new IllegalStateException("Payment not confirmed by Stripe (status: " + intent.getStatus() + ")");
+            }
+        } catch (StripeException e) {
+            log.warn("Could not verify PaymentIntent {} with Stripe: {}", paymentIntentId, e.getMessage());
+            // Allow optimistic update — webhook will reconcile if wrong
+        }
+
+        PaymentStatus oldStatus = order.getPaymentStatus();
         order.setPaymentStatus(PaymentStatus.PAID);
         order.setPaidAt(Instant.now());
         order = orderRepository.save(order);
+
+        logEvent(orderId, "PAID_CLIENT", oldStatus, PaymentStatus.PAID,
+            "user:" + userId, paymentIntentId, order.getPriceCents(), "Client-confirmed payment");
+
         log.info("Order {} marked PAID by user confirmation (intent: {})", orderId, paymentIntentId);
         return orderService.toResponse(order);
     }
 
-    private void markOrderPaid(String paymentIntentId) {
+    /** Log a payment event to the audit table. */
+    public void logEvent(UUID orderId, String eventType, PaymentStatus oldStatus, PaymentStatus newStatus,
+                         String actor, String stripeRef, Integer amountCents, String note) {
+        try {
+            paymentEventLogRepository.save(PaymentEventLog.builder()
+                .orderId(orderId.toString())
+                .eventType(eventType)
+                .oldStatus(oldStatus != null ? oldStatus.name() : null)
+                .newStatus(newStatus.name())
+                .actor(actor)
+                .stripeRef(stripeRef)
+                .amountCents(amountCents)
+                .note(note)
+                .build());
+        } catch (Exception e) {
+            log.error("Failed to write payment event log for order {}: {}", orderId, e.getMessage());
+        }
+    }
+
+    private void markOrderPaid(String paymentIntentId, String actor) {
         orderRepository.findByStripePaymentIntentId(paymentIntentId).ifPresent(order -> {
             if (order.getPaymentStatus() != PaymentStatus.PAID) {
+                PaymentStatus oldStatus = order.getPaymentStatus();
                 order.setPaymentStatus(PaymentStatus.PAID);
                 order.setPaidAt(Instant.now());
                 orderRepository.save(order);
+                logEvent(order.getId(), "PAID_WEBHOOK", oldStatus, PaymentStatus.PAID,
+                    actor, paymentIntentId, order.getPriceCents(), null);
                 log.info("Order {} marked PAID via webhook (intent: {})", order.getId(), paymentIntentId);
             }
         });
     }
 
-    private void markOrderFailed(String paymentIntentId) {
+    private void markOrderFailed(String paymentIntentId, String actor) {
         orderRepository.findByStripePaymentIntentId(paymentIntentId).ifPresent(order -> {
             if (order.getPaymentStatus() == PaymentStatus.AWAITING) {
+                PaymentStatus oldStatus = order.getPaymentStatus();
                 order.setPaymentStatus(PaymentStatus.FAILED);
                 orderRepository.save(order);
+                logEvent(order.getId(), "PAYMENT_FAILED", oldStatus, PaymentStatus.FAILED,
+                    actor, paymentIntentId, null, null);
                 log.info("Order {} marked FAILED via webhook (intent: {})", order.getId(), paymentIntentId);
             }
         });

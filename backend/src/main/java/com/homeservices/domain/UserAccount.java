@@ -38,6 +38,15 @@ public class UserAccount {
     @Builder.Default
     private AccountStatus status = AccountStatus.ACTIVE;
 
+    @Column(name = "home_address", length = 500)
+    private String homeAddress;
+
+    @Column(name = "home_lat")
+    private Double homeLat;
+
+    @Column(name = "home_lng")
+    private Double homeLng;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

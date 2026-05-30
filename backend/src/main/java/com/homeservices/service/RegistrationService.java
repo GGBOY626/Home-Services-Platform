@@ -32,6 +32,9 @@ public class RegistrationService {
             .passwordHash(passwordEncoder.encode(request.getPassword()))
             .role(Role.USER)
             .status(AccountStatus.ACTIVE)
+            .homeAddress(request.getHomeAddress())
+            .homeLat(request.getHomeLat())
+            .homeLng(request.getHomeLng())
             .build();
         account = userAccountRepository.save(account);
         String accessToken = jwtService.createAccessToken(account);

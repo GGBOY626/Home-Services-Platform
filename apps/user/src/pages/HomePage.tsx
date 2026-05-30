@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@home-services/ui';
 import { Button } from '@home-services/ui';
@@ -11,6 +11,12 @@ import { ServiceCard } from '../components/ServiceCard';
 import { AddressAutocomplete } from '../components/AddressAutocomplete';
 import { formatCurrency } from '@home-services/shared';
 import type { Order, CategoryWithItemsDTO } from '@home-services/shared';
+
+interface UserProfile {
+  homeAddress: string | null;
+  homeLat: number | null;
+  homeLng: number | null;
+}
 
 const CATEGORY_ICONS: Record<string, string> = {
   CLEANING: '🧹',
@@ -45,6 +51,7 @@ export function HomePage() {
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [bookingCategory, setBookingCategory] = useState<CategoryWithItemsDTO | null>(null);
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
+  const profileRef = useRef<UserProfile | null>(null);
   const { api } = useApi();
   const navigate = useNavigate();
   const { addToast } = useToast();
@@ -58,6 +65,17 @@ export function HomePage() {
     })
       .finally(() => setCategoriesLoading(false));
   }, [api, addToast]);
+
+  useEffect(() => {
+    api<UserProfile>('/user/profile').then((p) => {
+      profileRef.current = p;
+      if (p.homeAddress) {
+        setAddress(p.homeAddress);
+        setAddressLat(p.homeLat ?? null);
+        setAddressLng(p.homeLng ?? null);
+      }
+    }).catch(() => {});
+  }, [api]);
 
   const openBookModal = (cat: CategoryWithItemsDTO) => {
     setBookingCategory(cat);
