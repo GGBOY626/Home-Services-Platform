@@ -24,6 +24,7 @@ import com.homeservices.repository.ServiceItemRepository;
 import com.homeservices.repository.WorkerProfileRepository;
 import com.homeservices.security.JwtPrincipal;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -36,6 +37,7 @@ import java.util.UUID;
 
 import static com.homeservices.config.RequestIdFilter.MDC_REQUEST_ID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderService {
@@ -51,6 +53,8 @@ public class OrderService {
     private final LedgerService ledgerService;
     private final SchedulingValidator schedulingValidator;
     private final AuditEventService auditEventService;
+    private final EmailService emailService;
+    private final EmailTemplateService emailTemplateService;
 
     @Transactional
     public OrderResponse create(CreateOrderRequest request, JwtPrincipal principal) {
@@ -239,6 +243,16 @@ public class OrderService {
             principal.role().name(), principal.id().toString(), dur);
         auditEventService.recordWithContext(principal.role().name(), principal.id().toString(), AuditActions.ORDER_ACCEPT, "ORDER", order.getId().toString(),
             "Worker accepted order", null, (int) dur);
+
+        // Notify the user that the worker has accepted their order
+        try {
+            String subject = "Your Worker Is on the Way! — Order #" + orderId.toString().substring(0, 8);
+            String htmlBody = emailTemplateService.buildWorkerAcceptedEmail(order);
+            emailService.sendEmail(subject, htmlBody);
+        } catch (Exception e) {
+            log.warn("Failed to send worker accepted email for order {}: {}", orderId, e.getMessage());
+        }
+
         return toResponse(order);
     }
 
@@ -286,6 +300,16 @@ public class OrderService {
             principal.role().name(), principal.id().toString(), dur);
         auditEventService.recordWithContext(principal.role().name(), principal.id().toString(), AuditActions.ORDER_CONFIRM, "ORDER", order.getId().toString(),
             "User confirmed completion", null, (int) dur);
+
+        // Notify the user to rate the completed order
+        try {
+            String subject = "Order Closed — Rate Your Experience! — Order #" + orderId.toString().substring(0, 8);
+            String htmlBody = emailTemplateService.buildOrderClosedEmail(order);
+            emailService.sendEmail(subject, htmlBody);
+        } catch (Exception e) {
+            log.warn("Failed to send order closed email for order {}: {}", orderId, e.getMessage());
+        }
+
         return toResponse(order);
     }
 
@@ -475,6 +499,16 @@ public class OrderService {
         AuditLogging.logWithActor("UPDATE", "Order", "id=" + order.getId(), actorRole, actorId.toString(), dur);
         auditEventService.recordWithContext(actorRole, actorId != null ? actorId.toString() : null, AuditActions.ORDER_CANCEL, "ORDER", order.getId().toString(),
             "Order cancelled", java.util.Map.of("fromStatus", from.name(), "reason", reason != null ? reason : ""), dur);
+
+        // Notify the user that their order has been cancelled
+        try {
+            String subject = "Your Order Has Been Cancelled — Order #" + order.getId().toString().substring(0, 8);
+            String htmlBody = emailTemplateService.buildOrderCancelledEmail(order);
+            emailService.sendEmail(subject, htmlBody);
+        } catch (Exception e) {
+            log.warn("Failed to send order cancelled email for order {}: {}", order.getId(), e.getMessage());
+        }
+
         return toResponse(order);
     }
 

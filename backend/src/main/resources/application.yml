@@ -52,3 +52,10 @@ app:
     publishable-key: ${STRIPE_PUBLISHABLE_KEY:}
     secret-key: ${STRIPE_SECRET_KEY:}
     webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+  resend:
+    api-key: ${RESEND_API_KEY:}
+    from-email: ${RESEND_FROM_EMAIL:onboarding@resend.dev}
+  frontend:
+    user-base-url: ${USER_FRONTEND_URL:http://localhost:5173}
+    merchant-base-url: ${MERCHANT_FRONTEND_URL:http://localhost:5175}
+    worker-base-url: ${WORKER_FRONTEND_URL:http://localhost:5176}

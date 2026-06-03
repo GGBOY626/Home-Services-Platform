@@ -12,6 +12,7 @@ import com.homeservices.domain.WorkerAvailability;
 import com.homeservices.repository.WorkerProfileRepository;
 import com.homeservices.security.JwtPrincipal;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.security.SecureRandom;
 import java.time.Instant;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class WorkerApplicationService {
@@ -35,6 +37,8 @@ public class WorkerApplicationService {
     private final MerchantProfileRepository merchantProfileRepository;
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
     private final AuditEventService auditEventService;
+    private final EmailService emailService;
+    private final EmailTemplateService emailTemplateService;
 
     @Transactional
     public WorkerApplicationDTO submit(WorkerApplicationCreateRequest request) {
@@ -107,6 +111,16 @@ public class WorkerApplicationService {
         applicationRepository.save(app);
         auditEventService.recordWithContext(principal.role().name(), principal.id().toString(), AuditActions.APPLICATION_APPROVE, "WORKER_APPLICATION", app.getId().toString(),
             "Worker application approved", java.util.Map.of("applicationId", id, "accountId", account.getId().toString(), "merchantId", request.getMerchantId().toString()), null);
+
+        // Send approval email with temporary credentials
+        try {
+            String subject = "Your Worker Application Has Been Approved!";
+            String htmlBody = emailTemplateService.buildWorkerApplicationApprovedEmail(app.getFullName(), tempPassword);
+            emailService.sendEmail(subject, htmlBody);
+        } catch (Exception e) {
+            log.warn("Failed to send worker application approval email for {}: {}", app.getEmail(), e.getMessage());
+        }
+
         return ApproveResponse.builder()
             .application(toDTO(app))
             .tempPassword(tempPassword)

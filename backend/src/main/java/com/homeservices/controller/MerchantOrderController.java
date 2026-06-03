@@ -22,6 +22,8 @@ import com.homeservices.repository.UserAccountRepository;
 import com.homeservices.repository.WorkerProfileRepository;
 import com.homeservices.security.JwtPrincipal;
 import com.homeservices.service.CurrentUserService;
+import com.homeservices.service.EmailService;
+import com.homeservices.service.EmailTemplateService;
 import com.homeservices.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -56,6 +58,8 @@ public class MerchantOrderController {
     private final MerchantProfileRepository merchantProfileRepository;
     private final UserAccountRepository userAccountRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+    private final EmailTemplateService emailTemplateService;
 
     private static final String CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -218,6 +222,16 @@ public class MerchantOrderController {
             .updatedAt(Instant.now())
             .build();
         workerProfileRepository.save(profile);
+
+        // Send welcome email with temporary password and worker login link
+        try {
+            String subject = "Your Worker Account Has Been Created!";
+            String htmlBody = emailTemplateService.buildWorkerCreatedEmail(request.getDisplayName(), tempPassword);
+            emailService.sendEmail(subject, htmlBody);
+        } catch (Exception e) {
+            // Email failure should not block worker creation
+        }
+
         return ResponseEntity.ok(CreateWorkerResponse.builder()
             .worker(toWorkerSummary(profile))
             .tempPassword(tempPassword)

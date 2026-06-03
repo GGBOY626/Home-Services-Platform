@@ -23,7 +23,15 @@
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('Backend UP, paths:', len\\(d.get\\('paths',{}\\)\\)\\)\")",
       "Bash(python3 -c ' *)",
       "Bash(python3 -c \"import sys,json; paths=list\\(json.load\\(sys.stdin\\)['paths'].keys\\(\\)\\); [print\\(p\\) for p in paths if 'payment' in p or 'webhook' in p]\")",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(node *)",
+      "Bash(awk '{print $NF}')",
+      "Bash(sort -t'-' -k2,2n -k4,4n)",
+      "Bash(GRAPH_DIR=\"D:/class_project/Home-Services-Platform\" npx vite --host 127.0.0.1)",
+      "Bash(pnpm approve-builds *)",
+      "Bash(pnpm rebuild *)",
+      "Bash(mvn compile *)",
+      "Bash(java *)"
     ]
   }
 }

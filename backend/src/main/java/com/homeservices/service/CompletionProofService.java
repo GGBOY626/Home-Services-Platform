@@ -11,6 +11,7 @@ import com.homeservices.repository.OrderRepository;
 import com.homeservices.repository.OrderStatusHistoryRepository;
 import com.homeservices.security.JwtPrincipal;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,7 @@ import java.util.UUID;
 
 import static com.homeservices.config.RequestIdFilter.MDC_REQUEST_ID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CompletionProofService {
@@ -35,6 +37,8 @@ public class CompletionProofService {
     private final StorageProperties storageProperties;
     private final OrderService orderService;
     private final AuditEventService auditEventService;
+    private final EmailService emailService;
+    private final EmailTemplateService emailTemplateService;
 
     @Transactional
     public OrderResponse submitProof(UUID orderId, UUID workerId, String completionNotes,
@@ -117,6 +121,15 @@ public class CompletionProofService {
             principal.role().name(), principal.id().toString(), 0);
         auditEventService.recordWithContext(principal.role().name(), principal.id().toString(), AuditActions.ORDER_COMPLETE_WITH_PROOF, "ORDER", orderId.toString(),
             "Completion proof submitted", java.util.Map.of("orderId", orderId.toString(), "attachments", proof.getAttachments().size()), (int) dur);
+
+        // Send notification email to the user: order completed with rating & complaint links
+        try {
+            String subject = "Your Service Is Complete! — Order #" + orderId.toString().substring(0, 8);
+            String htmlBody = emailTemplateService.buildOrderCompletedEmail(order);
+            emailService.sendEmail(subject, htmlBody);
+        } catch (Exception e) {
+            log.warn("Failed to send order completion email for order {}: {}", orderId, e.getMessage());
+        }
 
         return orderService.toResponse(order);
     }

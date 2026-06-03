@@ -11,6 +11,7 @@ import com.homeservices.repository.MerchantProfileRepository;
 import com.homeservices.repository.UserAccountRepository;
 import com.homeservices.security.JwtPrincipal;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -21,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.security.SecureRandom;
 import java.time.Instant;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MerchantApplicationService {
@@ -33,6 +35,8 @@ public class MerchantApplicationService {
     private final MerchantProfileRepository merchantProfileRepository;
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
     private final AuditEventService auditEventService;
+    private final EmailService emailService;
+    private final EmailTemplateService emailTemplateService;
 
     @Transactional
     public MerchantApplicationDTO submit(MerchantApplicationCreateRequest request) {
@@ -102,6 +106,16 @@ public class MerchantApplicationService {
         applicationRepository.save(app);
         auditEventService.recordWithContext(principal.role().name(), principal.id().toString(), AuditActions.APPLICATION_APPROVE, "MERCHANT_APPLICATION", app.getId().toString(),
             "Merchant application approved", java.util.Map.of("applicationId", id, "accountId", account.getId().toString()), null);
+
+        // Send approval email with temporary credentials
+        try {
+            String subject = "Your Merchant Application Has Been Approved!";
+            String htmlBody = emailTemplateService.buildMerchantApplicationApprovedEmail(app.getBusinessName(), tempPassword);
+            emailService.sendEmail(subject, htmlBody);
+        } catch (Exception e) {
+            log.warn("Failed to send merchant application approval email for {}: {}", app.getEmail(), e.getMessage());
+        }
+
         return ApproveResponse.builder()
             .merchantApplication(toDTO(app))
             .tempPassword(tempPassword)
