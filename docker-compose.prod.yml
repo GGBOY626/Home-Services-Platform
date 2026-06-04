@@ -39,6 +39,11 @@ services:
       STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-onboarding@resend.dev}
+      USER_FRONTEND_URL: ${USER_FRONTEND_URL:-http://zhengwei.tech:8088/user}
+      MERCHANT_FRONTEND_URL: ${MERCHANT_FRONTEND_URL:-http://zhengwei.tech:8088/merchant}
+      WORKER_FRONTEND_URL: ${WORKER_FRONTEND_URL:-http://zhengwei.tech:8088/worker}
     volumes:
       - uploads_data:/data/uploads
     depends_on:
