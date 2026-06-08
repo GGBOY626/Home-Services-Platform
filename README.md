@@ -10,7 +10,9 @@ A **full-stack, production-style** platform for on-demand home services (cleanin
 |-------|--------------|
 | **Backend** | Java 21, Spring Boot 3.x, Spring Security (JWT + Refresh Token), Spring Data JPA, Flyway, OpenAPI/Swagger |
 | **Database** | MySQL 8 |
-| **Payment** | Stripe API (PaymentIntent flow) |
+| **Payment** | Stripe API (online card + cash/offline) |
+| **Maps** | Mapbox GL JS, Mapbox Geocoding API (address autocomplete) |
+| **Email** | Resend API (transactional email notifications) |
 | **Frontend** | React 18, TypeScript, Vite, TailwindCSS |
 | **Package Manager** | pnpm 9 monorepo (4 apps + 2 shared packages) |
 | **Deployment** | Docker, Docker Compose, Nginx |
@@ -54,7 +56,7 @@ mvn spring-boot:run
 - API base URL: **http://localhost:8080/api**
 - Swagger UI: **http://localhost:8080/swagger-ui.html**
 
-On first run, Flyway automatically applies all migrations (V1–V16) and seed data.  
+On first run, Flyway automatically applies all migrations (V1–V19) and seed data.  
 All `@demo.com` accounts use password **Password123!** in the dev profile.
 
 ---
@@ -112,7 +114,7 @@ pnpm build:all
 
 ## Project Progress
 
-> Last updated: 2026-05-27
+> Last updated: 2026-06-09
 
 ### Core Order Lifecycle
 - [x] Full state machine: `PLACED → MERCHANT_ASSIGNED → WORKER_ASSIGNED → ACCEPTED → COMPLETED → CLOSED`
@@ -165,6 +167,25 @@ pnpm build:all
 - [x] Structured MDC logging (requestId, actorRole, actorId, durationMs)
 - [x] Admin audit log viewer
 
+### Maps & Location
+- [x] Mapbox Geocoding API address autocomplete in all frontend apps (user, worker, merchant)
+- [x] Address coordinates (lat/lng) captured on orders at booking time
+- [x] Worker home address with coordinates (for distance calculation)
+- [x] Merchant business address with coordinates
+- [x] User home address with coordinates (V19)
+
+### Email Notifications (Resend)
+- [x] Resend API integration for transactional emails
+- [x] Order status notifications: placed, worker assigned, completed
+- [x] Application result notifications: worker / merchant approval or rejection
+- [x] Completion proof submission notification
+- [x] Configurable sender email via `RESEND_FROM_EMAIL` env var
+
+### Payment Audit
+- [x] Stripe webhook event deduplication (`stripe_webhook_event` table)
+- [x] Payment event log: every state transition recorded (`payment_event_log` table)
+- [x] Full audit trail: INTENT_CREATED, PAID_WEBHOOK, PAID_CLIENT, PAYMENT_FAILED, REFUND_ISSUED, CASH_PAYMENT, RECONCILIATION_FIXED
+
 ### Deployment
 - [x] Docker Compose for local dev (MySQL 8)
 - [x] Docker Compose production stack (Nginx + 4 frontends + backend + MySQL)
@@ -191,6 +212,9 @@ pnpm build:all
 | V14 | Stripe payment fields (PaymentIntent, PaymentStatus) |
 | V15 | Refund requests |
 | V16 | Cash payment (CASH_PENDING status) |
+| V17 | Location fields (order/worker/merchant lat/lng) |
+| V18 | Payment audit (webhook dedup + payment event log) |
+| V19 | User home address |
 
 ---
 
@@ -227,8 +251,10 @@ Home-Services-Platform/
 
 ## Configuration
 
-- **Backend:** `backend/src/main/resources/application.yml` — DB URL, JWT secret, Stripe keys, scheduling limits
+- **Backend:** `backend/src/main/resources/application.yml` — DB URL, JWT secret, Stripe keys, Resend API key, scheduling limits
 - **Frontend API base:** `packages/shared/src/index.ts` → `API_BASE` defaults to `http://localhost:8080/api`. Override via `VITE_API_BASE` env var for production.
+- **Mapbox:** Set `VITE_MAPBOX_TOKEN` in `.env.prod` (or `.env` for local dev) to enable address autocomplete in all frontend apps.
+- **Email:** Set `RESEND_API_KEY` in `.env.prod` to enable email notifications via Resend.
 
 ---
 
@@ -290,7 +316,9 @@ Private / portfolio use.
 |------|------|
 | **后端** | Java 21、Spring Boot 3.x、Spring Security（JWT + Refresh Token）、Spring Data JPA、Flyway、OpenAPI/Swagger |
 | **数据库** | MySQL 8 |
-| **支付** | Stripe API（PaymentIntent 流程） |
+| **支付** | Stripe API（在线刷卡 + 线下现金） |
+| **地图** | Mapbox GL JS、Mapbox Geocoding API（地址自动补全） |
+| **邮件** | Resend API（事务邮件通知） |
 | **前端** | React 18、TypeScript、Vite、TailwindCSS |
 | **包管理** | pnpm 9 monorepo（4 个 app + 2 个共享包） |
 | **部署** | Docker、Docker Compose、Nginx |
@@ -334,7 +362,7 @@ mvn spring-boot:run
 - API 地址：**http://localhost:8080/api**
 - Swagger 文档：**http://localhost:8080/swagger-ui.html**
 
-首次运行时 Flyway 自动执行所有迁移（V1–V16）并写入种子数据。
+首次运行时 Flyway 自动执行所有迁移（V1–V19）并写入种子数据。
 开发环境下所有 `@demo.com` 账号密码统一为 **Password123!**。
 
 ---
@@ -392,7 +420,7 @@ pnpm build:all
 
 ## 当前项目进度
 
-> 最后更新：2026-05-27
+> 最后更新：2026-06-09
 
 ### 核心订单流程
 - [x] 完整状态机：`PLACED → MERCHANT_ASSIGNED → WORKER_ASSIGNED → ACCEPTED → COMPLETED → CLOSED`
@@ -445,6 +473,25 @@ pnpm build:all
 - [x] 结构化 MDC 日志（requestId、actorRole、actorId、durationMs）
 - [x] 管理员审计日志查看
 
+### 地图与定位
+- [x] Mapbox Geocoding API 地址自动补全，覆盖全部前端应用（用户端、工人端、商家端）
+- [x] 下单时捕获地址经纬度坐标（lat/lng）
+- [x] 工人家庭地址与坐标（用于距离计算）
+- [x] 商家营业地址与坐标
+- [x] 用户家庭地址与坐标（V19）
+
+### 邮件通知（Resend）
+- [x] Resend API 事务邮件集成
+- [x] 订单状态通知：已下单、已分配工人、已完成
+- [x] 申请结果通知：工人/商家申请通过或拒绝
+- [x] 完工证明提交通知
+- [x] 通过 `RESEND_FROM_EMAIL` 环境变量配置发件人
+
+### 支付审计
+- [x] Stripe Webhook 事件去重（`stripe_webhook_event` 表）
+- [x] 支付事件日志：每次状态变更均记录（`payment_event_log` 表）
+- [x] 完整审计追踪：INTENT_CREATED、PAID_WEBHOOK、PAID_CLIENT、PAYMENT_FAILED、REFUND_ISSUED、CASH_PAYMENT、RECONCILIATION_FIXED
+
 ### 部署
 - [x] Docker Compose 本地开发（MySQL 8）
 - [x] Docker Compose 生产部署（Nginx + 四前端 + 后端 + MySQL）
@@ -471,6 +518,9 @@ pnpm build:all
 | V14 | Stripe 支付字段（PaymentIntent、PaymentStatus） |
 | V15 | 退款申请 |
 | V16 | 现金支付（新增 CASH_PENDING 状态） |
+| V17 | 位置字段（订单/工人/商家经纬度） |
+| V18 | 支付审计（Webhook 去重 + 支付事件日志） |
+| V19 | 用户家庭地址 |
 
 ---
 
@@ -507,8 +557,10 @@ Home-Services-Platform/
 
 ## 配置说明
 
-- **后端：** `backend/src/main/resources/application.yml`——数据库 URL、JWT 密钥、Stripe 密钥、调度参数
+- **后端：** `backend/src/main/resources/application.yml`——数据库 URL、JWT 密钥、Stripe 密钥、Resend API 密钥、调度参数
 - **前端 API 地址：** `packages/shared/src/index.ts` → `API_BASE` 默认为 `http://localhost:8080/api`，生产环境通过 `VITE_API_BASE` 环境变量覆盖
+- **Mapbox：** 在 `.env.prod`（或本地开发用 `.env`）中设置 `VITE_MAPBOX_TOKEN`，启用全部前端应用的地址自动补全
+- **邮件：** 在 `.env.prod` 中设置 `RESEND_API_KEY`，启用 Resend 邮件通知
 
 ---
 

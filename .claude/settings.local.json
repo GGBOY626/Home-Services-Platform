@@ -31,7 +31,12 @@
       "Bash(pnpm approve-builds *)",
       "Bash(pnpm rebuild *)",
       "Bash(mvn compile *)",
-      "Bash(java *)"
+      "Bash(java *)",
+      "Bash(xargs grep -l -i \"exception\\\\|@ControllerAdvice\\\\|@ExceptionHandler\\\\|ErrorHandler\\\\|GlobalException\")",
+      "Bash(xargs grep -l -i \"ratelimit\\\\|RateLimit\\\\|Throttle\\\\|bucket4j\")",
+      "Bash(xargs grep -l -i \"TODO\\\\|FIXME\\\\|HACK\\\\|XXX\\\\|WORKAROUND\\\\|BUG\")",
+      "Bash(xargs grep -l -i \"TODO\\\\|FIXME\\\\|HACK\\\\|WORKAROUND\")",
+      "Bash(xargs grep -l \"HomeServicesApplication\\\\|@SpringBootApplication\")"
     ]
   }
 }
