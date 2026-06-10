@@ -4,6 +4,7 @@ import com.homeservices.dto.CompletionProofDTO;
 import com.homeservices.dto.OrderResponse;
 import com.homeservices.dto.RejectRequest;
 import com.homeservices.dto.SetAvailabilityRequest;
+import com.homeservices.dto.VerifyOtpRequest;
 import com.homeservices.dto.UpdateLocationRequest;
 import com.homeservices.dto.WorkerMeResponse;
 import com.homeservices.security.JwtPrincipal;
@@ -104,6 +105,17 @@ public class WorkerOrderController {
         UUID workerId = currentUserService.getWorkerId(principal)
             .orElseThrow(() -> new IllegalStateException("Worker profile not found"));
         OrderResponse response = orderService.accept(id, workerId, principal);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/orders/{id}/verify-otp")
+    @Operation(summary = "Verify the OTP code provided by the customer")
+    public ResponseEntity<OrderResponse> verifyOtp(@PathVariable UUID id,
+                                                    @RequestBody VerifyOtpRequest request,
+                                                    @AuthenticationPrincipal JwtPrincipal principal) {
+        UUID workerId = currentUserService.getWorkerId(principal)
+            .orElseThrow(() -> new IllegalStateException("Worker profile not found"));
+        OrderResponse response = orderService.verifyOtp(id, request.getOtpCode(), workerId, principal);
         return ResponseEntity.ok(response);
     }
 

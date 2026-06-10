@@ -124,6 +124,18 @@ public class Order {
     @Column(name = "refunded_at")
     private Instant refundedAt;
 
+    @Column(name = "otp_code", length = 6)
+    private String otpCode;
+
+    @Column(name = "otp_generated_at")
+    private Instant otpGeneratedAt;
+
+    @Column(name = "otp_expires_at")
+    private Instant otpExpiresAt;
+
+    @Column(name = "otp_verified_at")
+    private Instant otpVerifiedAt;
+
     @Version
     @Column(name = "version", nullable = false)
     private Long version;

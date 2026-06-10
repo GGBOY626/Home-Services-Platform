@@ -15,6 +15,7 @@ public final class AuditActions {
     public static final String ORDER_ASSIGN_MERCHANT = "ORDER_ASSIGN_MERCHANT";
     public static final String ORDER_ASSIGN_WORKER = "ORDER_ASSIGN_WORKER";
     public static final String ORDER_ACCEPT = "ORDER_ACCEPT";
+    public static final String ORDER_OTP_VERIFY = "ORDER_OTP_VERIFY";
     public static final String ORDER_COMPLETE_WITH_PROOF = "ORDER_COMPLETE_WITH_PROOF";
     public static final String ORDER_CONFIRM = "ORDER_CONFIRM";
     public static final String ORDER_CANCEL = "ORDER_CANCEL";

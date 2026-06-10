@@ -42,4 +42,6 @@ public class OrderResponse {
 
     private Double addressLat;
     private Double addressLng;
+
+    private Instant otpVerifiedAt;
 }

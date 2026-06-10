@@ -21,6 +21,7 @@ import com.homeservices.repository.MerchantServiceRepository;
 import com.homeservices.repository.OrderRepository;
 import com.homeservices.repository.OrderStatusHistoryRepository;
 import com.homeservices.repository.ServiceItemRepository;
+import com.homeservices.repository.UserAccountRepository;
 import com.homeservices.repository.WorkerProfileRepository;
 import com.homeservices.security.JwtPrincipal;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +50,7 @@ public class OrderService {
     private final WorkerProfileRepository workerProfileRepository;
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
     private final com.homeservices.repository.OrderCompletionProofRepository completionProofRepository;
+    private final UserAccountRepository userAccountRepository;
     private final DispatchProperties dispatchProperties;
     private final LedgerService ledgerService;
     private final SchedulingValidator schedulingValidator;
@@ -236,6 +238,14 @@ public class OrderService {
         OrderStatus from = order.getStatus();
         order.setStatus(OrderStatus.ACCEPTED);
         order.setWorkerAcceptDeadline(null);
+
+        // Generate 6-digit OTP for worker-customer handshake verification
+        String otp = String.format("%06d", new java.security.SecureRandom().nextInt(1_000_000));
+        Instant now = Instant.now();
+        order.setOtpCode(otp);
+        order.setOtpGeneratedAt(now);
+        order.setOtpExpiresAt(now.plusSeconds(30 * 60)); // 30 minute expiry
+
         order = orderRepository.save(order);
         recordHistory(order.getId(), from.name(), order.getStatus().name(), principal.role().name(), principal.id(), null);
         long dur = System.currentTimeMillis() - start;
@@ -244,15 +254,56 @@ public class OrderService {
         auditEventService.recordWithContext(principal.role().name(), principal.id().toString(), AuditActions.ORDER_ACCEPT, "ORDER", order.getId().toString(),
             "Worker accepted order", null, (int) dur);
 
-        // Notify the user that the worker has accepted their order
+        // Notify the customer: worker accepted + OTP verification code
         try {
+            String customerEmail = userAccountRepository.findById(order.getCreatedBy())
+                .map(com.homeservices.domain.UserAccount::getEmail)
+                .orElse(null);
             String subject = "Your Worker Is on the Way! — Order #" + orderId.toString().substring(0, 8);
-            String htmlBody = emailTemplateService.buildWorkerAcceptedEmail(order);
-            emailService.sendEmail(subject, htmlBody);
+            String htmlBody = emailTemplateService.buildOtpEmail(order);
+            if (customerEmail != null) {
+                emailService.sendEmail(customerEmail, subject, htmlBody);
+            } else {
+                log.warn("Could not find customer email for order {}, falling back to fixed recipient", orderId);
+                emailService.sendEmail(subject, htmlBody);
+            }
         } catch (Exception e) {
-            log.warn("Failed to send worker accepted email for order {}: {}", orderId, e.getMessage());
+            log.warn("Failed to send OTP email for order {}: {}", orderId, e.getMessage());
         }
 
+        return toResponse(order);
+    }
+
+    @Transactional
+    public OrderResponse verifyOtp(UUID orderId, String otpCode, UUID workerId, JwtPrincipal principal) {
+        long start = System.currentTimeMillis();
+        Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+        if (order.getStatus() != OrderStatus.ACCEPTED) {
+            throw new IllegalStateException("Order must have status ACCEPTED to verify OTP. Current: " + order.getStatus());
+        }
+        if (!order.getWorkerId().equals(workerId)) {
+            throw new IllegalArgumentException("Order is not assigned to you");
+        }
+        if (order.getOtpCode() == null) {
+            throw new IllegalStateException("No OTP has been generated for this order");
+        }
+        if (order.getOtpVerifiedAt() != null) {
+            throw new IllegalStateException("OTP has already been verified for this order");
+        }
+        if (order.getOtpExpiresAt() != null && order.getOtpExpiresAt().isBefore(Instant.now())) {
+            throw new IllegalStateException("OTP has expired. Please contact support.");
+        }
+        if (!order.getOtpCode().equals(otpCode.trim())) {
+            throw new IllegalArgumentException("Invalid OTP code");
+        }
+        order.setOtpVerifiedAt(Instant.now());
+        order = orderRepository.save(order);
+        long dur = System.currentTimeMillis() - start;
+        AuditLogging.logWithActor("UPDATE", "Order", "id=" + order.getId() + ",otpVerified",
+            principal.role().name(), principal.id().toString(), dur);
+        auditEventService.recordWithContext(principal.role().name(), principal.id().toString(), AuditActions.ORDER_OTP_VERIFY, "ORDER", order.getId().toString(),
+            "Worker verified OTP", null, (int) dur);
         return toResponse(order);
     }
 
@@ -628,6 +679,7 @@ public class OrderService {
             .refundedAt(order.getRefundedAt())
             .addressLat(order.getAddressLat())
             .addressLng(order.getAddressLng())
+            .otpVerifiedAt(order.getOtpVerifiedAt())
             .build();
     }
 }

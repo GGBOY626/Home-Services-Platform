@@ -64,6 +64,45 @@ public class EmailTemplateService {
     }
 
     // ──────────────────────────────────────────────
+    // Scenario 1b: OTP for worker-customer handshake
+    // ──────────────────────────────────────────────
+
+    public String buildOtpEmail(Order order) {
+        String orderUrl = frontendProperties.getUserBaseUrl() + "/orders/" + order.getId();
+
+        return wrapEmail(
+                "Your Verification Code for Order #" + order.getId().toString().substring(0, 8),
+                """
+                <p>Your worker has <strong>accepted</strong> your order and is on the way.</p>
+
+                <div class="info-box">
+                    <p><strong>Order:</strong> #%s</p>
+                    <p><strong>Service:</strong> %s</p>
+                    <p><strong>Address:</strong> %s</p>
+                </div>
+
+                <div style="background:#1a1a2e;border:2px dashed #6c63ff;border-radius:12px;padding:24px;margin:24px 0;text-align:center;">
+                    <p style="color:#a0a0b8;font-size:13px;margin:0 0 8px;">YOUR VERIFICATION CODE</p>
+                    <p style="font-family:'Courier New',monospace;font-size:36px;font-weight:700;color:#ffffff;letter-spacing:8px;margin:0;">%s</p>
+                    <p style="color:#a0a0b8;font-size:12px;margin:12px 0 0;">Share this code with your worker when they arrive.<br>This code expires in 30 minutes.</p>
+                </div>
+
+                <p><strong>⚠️ Important:</strong> Only share this code with the worker who arrives at your location. Do not share it via phone, text, or email. This ensures your safety and confirms the right person is providing your service.</p>
+
+                <a href="%s" class="btn">View Order Details</a>
+
+                <p class="muted">If you have any questions or need to reschedule, please visit your order page or contact our support team.</p>
+                """.formatted(
+                        order.getId().toString().substring(0, 8),
+                        escapeHtml(order.getServiceNameSnapshot()),
+                        escapeHtml(order.getAddress()),
+                        order.getOtpCode() != null ? order.getOtpCode() : "------",
+                        orderUrl
+                )
+        );
+    }
+
+    // ──────────────────────────────────────────────
     // Scenario 2: Worker completed the job (proof submitted)
     // ──────────────────────────────────────────────
 

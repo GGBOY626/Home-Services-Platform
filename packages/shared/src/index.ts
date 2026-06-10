@@ -127,10 +127,12 @@ export interface Order {
   updatedAt: string;
   cancelReason?: string | null;
   cancelledByRole?: string | null;
+  cancelledById?: string | null;
   cancelledAt?: string | null;
   merchantAssignDeadline?: string | null;
   workerAcceptDeadline?: string | null;
   scheduledAt: string;
+  otpVerifiedAt?: string | null;
   paymentStatus?: PaymentStatus | null;
   stripePaymentIntentId?: string | null;
   paidAt?: string | null;

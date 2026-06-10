@@ -55,6 +55,11 @@ public class CompletionProofService {
             throw new IllegalArgumentException("Order is not assigned to you");
         }
 
+        // Require OTP verification before completion
+        if (order.getOtpVerifiedAt() == null) {
+            throw new IllegalStateException("OTP verification is required before completing the order. Please verify the OTP code from the customer first.");
+        }
+
         if (proofRepository.existsByOrderId(orderId)) {
             throw new IllegalStateException("Completion proof already submitted.");
         }

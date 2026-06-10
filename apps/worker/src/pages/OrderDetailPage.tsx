@@ -28,6 +28,8 @@ export function OrderDetailPage() {
   const [notes, setNotes] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [labels, setLabels] = useState<string[]>([]);
+  const [otpInput, setOtpInput] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -110,6 +112,27 @@ export function OrderDetailPage() {
     }
   };
 
+  const handleVerifyOtp = async () => {
+    if (!id || otpInput.trim().length !== 6) {
+      addToast('error', 'Please enter the 6-digit verification code');
+      return;
+    }
+    setOtpLoading(true);
+    try {
+      const updated = await api<Order>(`/worker/orders/${id}/verify-otp`, {
+        method: 'POST',
+        body: JSON.stringify({ otpCode: otpInput.trim() }),
+      });
+      setOrder(updated);
+      setOtpInput('');
+      addToast('success', 'OTP verified successfully! You can now complete the order.');
+    } catch (e) {
+      addToast('error', 'OTP verification failed', e instanceof Error ? e.message : 'Unknown error');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
     const valid = selected.filter((f) => f.type.startsWith('image/'));
@@ -137,6 +160,8 @@ export function OrderDetailPage() {
 
   const canAccept = order.status === 'WORKER_ASSIGNED';
   const canComplete = order.status === 'ACCEPTED';
+  const otpVerified = order.otpVerifiedAt != null;
+  const needsOtp = canComplete && !otpVerified;
   const showProofReadOnly = order.status === 'COMPLETED' && proof;
 
   return (
@@ -177,7 +202,56 @@ export function OrderDetailPage() {
           )}
           <p className="mt-4 text-sm text-[var(--app-text-muted)]">Created {formatDate(order.createdAt)}</p>
 
-          {canComplete && (
+          {/* OTP Verification Step (before completion) */}
+          {needsOtp && (
+            <div className="mt-6 space-y-4 border-t border-[var(--app-border)] pt-6">
+              <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
+                <p className="text-sm font-semibold text-amber-800 mb-2">🔐 Verification Required</p>
+                <p className="text-sm text-amber-700">
+                  Ask the customer for the 6-digit verification code they received via email. You must verify this code before completing the order.
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[var(--app-text)] mb-1">Enter 6-digit OTP from customer</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    pattern="[0-9]*"
+                    autoComplete="one-time-code"
+                    value={otpInput}
+                    onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="000000"
+                    className="w-40 rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-center text-xl font-mono tracking-[0.3em] text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[var(--app-primary)]"
+                  />
+                  <Button
+                    size="lg"
+                    className="bg-[var(--app-cta)] hover:bg-[var(--app-cta-hover)] text-white"
+                    onClick={handleVerifyOtp}
+                    disabled={otpLoading || otpInput.trim().length !== 6}
+                  >
+                    {otpLoading ? 'Verifying…' : 'Verify OTP'}
+                  </Button>
+                </div>
+                <p className="mt-2 text-xs text-[var(--app-text-muted)]">
+                  The customer received this code when you accepted the order.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* OTP Verified badge */}
+          {canComplete && otpVerified && (
+            <div className="mt-6 border-t border-[var(--app-border)] pt-4">
+              <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                <span>✅</span>
+                <span>OTP verified — you can now complete the order</span>
+              </div>
+            </div>
+          )}
+
+          {canComplete && otpVerified && (
             <div className="mt-6 space-y-4 border-t border-[var(--app-border)] pt-6">
               <div>
                 <label className="block text-sm font-medium text-[var(--app-text)] mb-1">Completion notes (required, min 10 chars)</label>
