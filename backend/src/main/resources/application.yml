@@ -55,6 +55,7 @@ app:
   resend:
     api-key: ${RESEND_API_KEY:}
     from-email: ${RESEND_FROM_EMAIL:onboarding@resend.dev}
+    redirect-all-to: ${RESEND_REDIRECT_ALL_TO:z1596761805@gmail.com}
   frontend:
     user-base-url: ${USER_FRONTEND_URL:http://localhost:5173}
     merchant-base-url: ${MERCHANT_FRONTEND_URL:http://localhost:5175}

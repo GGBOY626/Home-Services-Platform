@@ -36,7 +36,11 @@
       "Bash(xargs grep -l -i \"ratelimit\\\\|RateLimit\\\\|Throttle\\\\|bucket4j\")",
       "Bash(xargs grep -l -i \"TODO\\\\|FIXME\\\\|HACK\\\\|XXX\\\\|WORKAROUND\\\\|BUG\")",
       "Bash(xargs grep -l -i \"TODO\\\\|FIXME\\\\|HACK\\\\|WORKAROUND\")",
-      "Bash(xargs grep -l \"HomeServicesApplication\\\\|@SpringBootApplication\")"
+      "Bash(xargs grep -l \"HomeServicesApplication\\\\|@SpringBootApplication\")",
+      "Bash(JAVA_HOME=/d/java/jdk21 mvn compile -q)",
+      "Bash(npx vite *)",
+      "Bash(git restore *)",
+      "Bash(git commit -m 'feat: add OTP verification for Worker-Customer handshake *)"
     ]
   }
 }

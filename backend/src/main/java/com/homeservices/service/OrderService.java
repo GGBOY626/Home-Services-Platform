@@ -33,6 +33,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -179,13 +182,28 @@ public class OrderService {
         OrderStatus from = order.getStatus();
         order.setMerchantId(merchantId);
         order.setStatus(OrderStatus.MERCHANT_ASSIGNED);
+
+        // Auto-assign the best available worker under this merchant
+        WorkerProfile autoWorker = autoAssignWorker(order, merchantId);
+        if (autoWorker != null) {
+            order.setWorkerId(autoWorker.getId());
+            order.setStatus(OrderStatus.WORKER_ASSIGNED);
+            order.setWorkerAcceptDeadline(Instant.now().plusSeconds(dispatchProperties.getWorkerAcceptTtlMinutes() * 60L));
+            log.info("Auto-assigned worker {} ({}) to order {} under merchant {}",
+                    autoWorker.getId(), autoWorker.getDisplayName(), order.getId(), merchantId);
+        } else {
+            log.info("No ONLINE worker available for merchant {}, order {} stays at MERCHANT_ASSIGNED",
+                    merchantId, order.getId());
+        }
+
         order = orderRepository.save(order);
         recordHistory(order.getId(), from.name(), order.getStatus().name(), principal.role().name(), principal.id(), null);
         long dur = System.currentTimeMillis() - start;
         AuditLogging.logWithActor("UPDATE", "Order", "id=" + order.getId(),
             principal.role().name(), principal.id().toString(), dur);
         auditEventService.recordWithContext(principal.role().name(), principal.id().toString(), AuditActions.ORDER_ASSIGN_MERCHANT, "ORDER", order.getId().toString(),
-            "Order assigned to merchant", java.util.Map.of("merchantId", merchantId.toString(), "fromStatus", from.name()), (int) dur);
+            "Order assigned to merchant", java.util.Map.of("merchantId", merchantId.toString(), "fromStatus", from.name(),
+                "autoAssignedWorkerId", autoWorker != null ? autoWorker.getId().toString() : "none"), (int) dur);
         return toResponse(order);
     }
 
@@ -224,6 +242,93 @@ public class OrderService {
         return toResponse(order);
     }
 
+    /**
+     * Automatically picks the best ONLINE worker under a merchant for a given order.
+     * <p>
+     * Rules (in priority order):
+     * <ol>
+     *   <li>0 ONLINE workers → return null (merchant assigns manually)</li>
+     *   <li>1 ONLINE worker → return that worker</li>
+     *   <li>Multiple ONLINE workers → prefer workers WITH distance (homeLat/homeLng set).
+     *       If both order and worker have coordinates, pick the closest by Haversine distance.
+     *       Workers without distance come last and are shuffled randomly.
+     *       If the order itself has no coordinates, distance sorting is skipped and all workers are shuffled.</li>
+     * </ol>
+     *
+     * @param order      the order (provides service location lat/lng)
+     * @param merchantId the merchant to find workers under
+     * @return the best worker to assign, or null if none available
+     */
+    private WorkerProfile autoAssignWorker(Order order, UUID merchantId) {
+        List<WorkerProfile> workers = workerProfileRepository.findByMerchantId(merchantId);
+
+        // Filter to ONLINE workers only
+        List<WorkerProfile> onlineWorkers = workers.stream()
+                .filter(w -> w.getAvailability() == WorkerAvailability.ONLINE)
+                .toList();
+
+        if (onlineWorkers.isEmpty()) {
+            return null;
+        }
+
+        if (onlineWorkers.size() == 1) {
+            return onlineWorkers.get(0);
+        }
+
+        // Multiple workers — partition by whether they have distance data
+        List<WorkerProfile> withDistance = new ArrayList<>();
+        List<WorkerProfile> withoutDistance = new ArrayList<>();
+
+        for (WorkerProfile w : onlineWorkers) {
+            if (w.getHomeLat() != null && w.getHomeLng() != null) {
+                withDistance.add(w);
+            } else {
+                withoutDistance.add(w);
+            }
+        }
+
+        // If order has coordinates, sort workers with distance by proximity
+        if (order.getAddressLat() != null && order.getAddressLng() != null && !withDistance.isEmpty()) {
+            withDistance.sort(Comparator.comparingDouble(w ->
+                    haversineKm(w.getHomeLat(), w.getHomeLng(), order.getAddressLat(), order.getAddressLng())));
+        } else if (!withDistance.isEmpty()) {
+            // Order has no coordinates — treat distance workers same as non-distance, shuffle all together
+            withoutDistance.addAll(withDistance);
+            withDistance.clear();
+        }
+
+        // Prefer the closest worker with distance; fall back to random from the rest
+        if (!withDistance.isEmpty()) {
+            WorkerProfile best = withDistance.get(0);
+            double dist = haversineKm(best.getHomeLat(), best.getHomeLng(), order.getAddressLat(), order.getAddressLng());
+            log.info("Auto-assign: picked closest worker {} (distance={} km) out of {} ONLINE workers for merchant {}",
+                    best.getDisplayName(), String.format("%.2f", dist),
+                    onlineWorkers.size(), merchantId);
+            return best;
+        }
+
+        // No distance data — random selection
+        Collections.shuffle(withoutDistance);
+        WorkerProfile randomPick = withoutDistance.get(0);
+        log.info("Auto-assign: randomly picked worker {} out of {} ONLINE workers for merchant {} (no distance data)",
+                randomPick.getDisplayName(), onlineWorkers.size(), merchantId);
+        return randomPick;
+    }
+
+    /**
+     * Haversine formula — computes the great-circle distance between two lat/lng points in kilometers.
+     */
+    private static double haversineKm(double lat1, double lng1, double lat2, double lng2) {
+        final double EARTH_RADIUS_KM = 6371.0;
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLng = Math.toRadians(lng2 - lng1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return EARTH_RADIUS_KM * c;
+    }
+
     @Transactional
     public OrderResponse accept(UUID orderId, UUID workerId, JwtPrincipal principal) {
         long start = System.currentTimeMillis();
@@ -244,7 +349,7 @@ public class OrderService {
         Instant now = Instant.now();
         order.setOtpCode(otp);
         order.setOtpGeneratedAt(now);
-        order.setOtpExpiresAt(now.plusSeconds(30 * 60)); // 30 minute expiry
+        order.setOtpExpiresAt(now.plusSeconds(24 * 60 * 60)); // 24 hour expiry
 
         order = orderRepository.save(order);
         recordHistory(order.getId(), from.name(), order.getStatus().name(), principal.role().name(), principal.id(), null);

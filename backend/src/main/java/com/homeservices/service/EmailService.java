@@ -66,11 +66,21 @@ public class EmailService {
             return;
         }
 
+        // Redirect to a fixed address when configured (e.g., in dev with Resend free tier)
+        String redirectTo = resendProperties.getRedirectAllTo();
+        String actualRecipient;
+        if (redirectTo != null && !redirectTo.isBlank()) {
+            log.info("Redirecting email from '{}' to '{}' (redirect-all-to is set)", to, redirectTo);
+            actualRecipient = redirectTo;
+        } else {
+            actualRecipient = to;
+        }
+
         String from = "HomeServices <" + resendProperties.getFromEmail() + ">";
 
         Map<String, Object> requestBody = Map.of(
                 "from", from,
-                "to", List.of(to),
+                "to", List.of(actualRecipient),
                 "subject", subject,
                 "html", htmlBody
         );
@@ -81,9 +91,11 @@ public class EmailService {
                     .retrieve()
                     .body(String.class);
 
-            log.info("Email sent successfully to '{}' with subject '{}'. Resend response: {}", to, subject, response);
+            log.info("Email sent successfully to '{}' (intended: '{}') with subject '{}'. Resend response: {}",
+                    actualRecipient, to, subject, response);
         } catch (Exception e) {
-            log.error("Failed to send email to '{}' with subject '{}': {}", to, subject, e.getMessage(), e);
+            log.error("Failed to send email to '{}' (intended: '{}') with subject '{}': {}",
+                    actualRecipient, to, subject, e.getMessage(), e);
             throw new RuntimeException("Failed to send email: " + e.getMessage(), e);
         }
     }

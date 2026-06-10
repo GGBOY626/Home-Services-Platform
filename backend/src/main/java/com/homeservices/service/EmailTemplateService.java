@@ -84,7 +84,7 @@ public class EmailTemplateService {
                 <div style="background:#1a1a2e;border:2px dashed #6c63ff;border-radius:12px;padding:24px;margin:24px 0;text-align:center;">
                     <p style="color:#a0a0b8;font-size:13px;margin:0 0 8px;">YOUR VERIFICATION CODE</p>
                     <p style="font-family:'Courier New',monospace;font-size:36px;font-weight:700;color:#ffffff;letter-spacing:8px;margin:0;">%s</p>
-                    <p style="color:#a0a0b8;font-size:12px;margin:12px 0 0;">Share this code with your worker when they arrive.<br>This code expires in 30 minutes.</p>
+                    <p style="color:#a0a0b8;font-size:12px;margin:12px 0 0;">Share this code with your worker when they arrive.<br>This code expires in 24 hours.</p>
                 </div>
 
                 <p><strong>⚠️ Important:</strong> Only share this code with the worker who arrives at your location. Do not share it via phone, text, or email. This ensures your safety and confirms the right person is providing your service.</p>
