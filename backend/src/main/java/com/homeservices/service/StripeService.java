@@ -118,15 +118,18 @@ public class StripeService {
 
     @Transactional
     public OrderResponse handleWebhookEvent(String payload, String sigHeader) {
+        // webhook-secret MUST be configured — signature verification is mandatory.
+        // The fallback path (Event.GSON.fromJson) has been removed because it allows
+        // anyone to forge payment events by posting to the public webhook endpoint.
+        if (stripeProperties.getWebhookSecret() == null || stripeProperties.getWebhookSecret().isBlank()) {
+            throw new IllegalStateException(
+                    "Stripe webhook secret is not configured. Set STRIPE_WEBHOOK_SECRET in environment.");
+        }
         Event event;
-        if (stripeProperties.getWebhookSecret() != null && !stripeProperties.getWebhookSecret().isBlank()) {
-            try {
-                event = Webhook.constructEvent(payload, sigHeader, stripeProperties.getWebhookSecret());
-            } catch (SignatureVerificationException e) {
-                throw new SecurityException("Invalid Stripe webhook signature");
-            }
-        } else {
-            event = Event.GSON.fromJson(payload, Event.class);
+        try {
+            event = Webhook.constructEvent(payload, sigHeader, stripeProperties.getWebhookSecret());
+        } catch (SignatureVerificationException e) {
+            throw new SecurityException("Invalid Stripe webhook signature");
         }
 
         // Timestamp validation: reject events older than 5 minutes (replay attack prevention)
