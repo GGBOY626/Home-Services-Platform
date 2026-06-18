@@ -62,8 +62,11 @@ services:
     restart: unless-stopped
     ports:
       - "${NGINX_PORT:-8088}:80"
+      - "443:443"
     depends_on:
       - backend
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     networks:
       - app
 
