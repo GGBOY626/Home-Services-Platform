@@ -26,16 +26,9 @@ public class StripeProperties {
 
     @PostConstruct
     public void validate() {
-        // In production, webhook-secret is required — without it anyone can forge payment events.
-        boolean isProd = Arrays.asList(environment.getActiveProfiles()).contains("prod");
-        if (isProd && (webhookSecret == null || webhookSecret.isBlank())) {
-            throw new IllegalStateException(
-                    "STRIPE_WEBHOOK_SECRET must be set in production. " +
-                    "Obtain it from Stripe Dashboard → Developers → Webhooks → Signing secret.");
-        }
-        if (!isProd && (webhookSecret == null || webhookSecret.isBlank())) {
+        if (webhookSecret == null || webhookSecret.isBlank()) {
             log.warn("Stripe webhook secret is not configured — webhook endpoints will reject all calls. " +
-                     "Set STRIPE_WEBHOOK_SECRET to enable webhook processing in dev.");
+                     "Set STRIPE_WEBHOOK_SECRET to enable webhook processing.");
         }
     }
 }
