@@ -13,7 +13,6 @@ spring:
 
 server:
   port: ${BACKEND_PORT:8080}
-  forward-headers-strategy: framework
 app:
   jwt:
     secret: ${APP_JWT_SECRET}
