@@ -35,43 +35,86 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <h2 className="text-xl font-semibold text-neutral-900">Dashboard</h2>
-      <div className="grid gap-4 sm:grid-cols-3">
-        <KpiCard title="Today's Orders" value={todayOrders.length} />
-        <KpiCard title="Active Jobs" value={active.length} />
-        <KpiCard title="Completed" value={completed.length} />
+      {/* Page title */}
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--app-text)' }}>
+          👋 Welcome back
+        </h2>
+        <p className="mt-1 text-sm" style={{ color: 'var(--app-text-muted)' }}>
+          Here's what's happening with your business today.
+        </p>
       </div>
 
+      {/* KPI cards */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <KpiCard title="Today's Orders" value={todayOrders.length} icon="📦" />
+        <KpiCard title="Active Jobs" value={active.length} icon="🔧" />
+        <KpiCard title="Completed" value={completed.length} icon="✅" />
+      </div>
+
+      {/* Latest orders */}
       <section>
-        <h3 className="mb-4 text-lg font-medium text-neutral-900">Latest Orders</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold" style={{ color: 'var(--app-text)' }}>
+            Latest Orders
+          </h3>
+          <button
+            onClick={() => navigate('/orders')}
+            className="text-sm font-medium transition-colors hover:underline"
+            style={{ color: 'var(--app-primary)' }}
+          >
+            View all →
+          </button>
+        </div>
+
         {loading ? (
-          <p className="text-neutral-500">Loading…</p>
+          <p className="text-sm" style={{ color: 'var(--app-text-muted)' }}>Loading…</p>
         ) : orders.length === 0 ? (
-          <p className="text-neutral-500">No orders yet.</p>
+          <div
+            className="rounded-xl border p-8 text-center"
+            style={{ borderColor: 'var(--app-border)', backgroundColor: 'var(--app-surface)' }}
+          >
+            <span className="text-4xl">📭</span>
+            <p className="mt-2 text-sm" style={{ color: 'var(--app-text-muted)' }}>
+              No orders yet. Orders assigned to your merchant will appear here.
+            </p>
+          </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
+          <div
+            className="overflow-hidden rounded-xl border shadow-sm"
+            style={{ borderColor: 'var(--app-border)', backgroundColor: 'var(--app-surface)' }}
+          >
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-neutral-200 bg-neutral-50">
-                  <th className="px-4 py-3 text-left font-medium text-neutral-700">ID</th>
-                  <th className="px-4 py-3 text-left font-medium text-neutral-700">Status</th>
-                  <th className="px-4 py-3 text-left font-medium text-neutral-700">Address</th>
-                  <th className="px-4 py-3 text-left font-medium text-neutral-700">Created</th>
+                <tr className="border-b" style={{ borderColor: 'var(--app-border)', backgroundColor: 'var(--app-surface-alt)' }}>
+                  <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--app-text-muted)' }}>ID</th>
+                  <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--app-text-muted)' }}>Status</th>
+                  <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--app-text-muted)' }}>Address</th>
+                  <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--app-text-muted)' }}>Created</th>
                 </tr>
               </thead>
               <tbody>
                 {orders.slice(0, 10).map((order) => (
                   <tr
                     key={order.id}
-                    className="border-b border-neutral-100 hover:bg-neutral-50 cursor-pointer"
+                    className="border-b cursor-pointer transition-colors"
+                    style={{ borderColor: 'var(--app-border)' }}
                     onClick={() => navigate(`/orders?open=${order.id}`)}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--app-nav-hover)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '')}
                   >
-                    <td className="px-4 py-3 font-mono text-neutral-600">{order.id.slice(0, 8)}…</td>
+                    <td className="px-4 py-3 font-mono text-xs" style={{ color: 'var(--app-text-muted)' }}>
+                      {order.id.slice(0, 8)}…
+                    </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={order.status} />
                     </td>
-                    <td className="px-4 py-3 text-neutral-900 truncate max-w-[200px]">{order.address}</td>
-                    <td className="px-4 py-3 text-neutral-500">{formatDate(order.createdAt)}</td>
+                    <td className="px-4 py-3 truncate max-w-[200px]" style={{ color: 'var(--app-text)' }}>
+                      {order.address}
+                    </td>
+                    <td className="px-4 py-3 text-xs" style={{ color: 'var(--app-text-muted)' }}>
+                      {formatDate(order.createdAt)}
+                    </td>
                   </tr>
                 ))}
               </tbody>

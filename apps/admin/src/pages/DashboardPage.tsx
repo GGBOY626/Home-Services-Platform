@@ -200,11 +200,15 @@ export function DashboardPage() {
     <div className="space-y-5">
 
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-[var(--app-text)]">Dashboard</h2>
-        <p className="text-xs text-[var(--app-text-muted)]">
-          {new Date().toLocaleDateString('en', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-        </p>
+      <div>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--app-text)' }}>
+            ⚙️ Dashboard
+          </h2>
+          <p className="text-xs" style={{ color: 'var(--app-text-muted)' }}>
+            {new Date().toLocaleDateString('en', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </p>
+        </div>
       </div>
 
       {/* KPI cards */}

@@ -11,7 +11,9 @@
   --app-text-muted: #64748b;
   --app-primary: #334155;
   --app-primary-hover: #1e293b;
-  --app-accent: #475569;
+  --app-primary-light: #f1f5f9;
+  --app-accent: #6366f1;
+  --app-accent-light: #eef2ff;
   --app-status-success: #0f766e;
   --app-status-warning: #b45309;
   --app-status-danger: #b91c1c;

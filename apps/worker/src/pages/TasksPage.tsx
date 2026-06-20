@@ -60,6 +60,8 @@ export function TasksPage() {
 
   const active = orders.filter((o) => o.status === 'WORKER_ASSIGNED' || o.status === 'ACCEPTED');
   const current = active[0];
+  const pendingCount = orders.filter((o) => o.status === 'WORKER_ASSIGNED').length;
+  const acceptedCount = orders.filter((o) => o.status === 'ACCEPTED').length;
 
   const currentDistance = (() => {
     if (!current || !profile) return null;
@@ -105,27 +107,53 @@ export function TasksPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-12">
-        <p className="text-[var(--app-text-muted)]">Loading…</p>
+        <p style={{ color: 'var(--app-text-muted)' }}>Loading…</p>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-xl font-bold text-[var(--app-text)]">Current Task</h1>
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-[var(--app-text-muted)] uppercase tracking-wider">Availability</span>
-          <div className="flex rounded-xl border-2 border-[var(--app-border)] bg-[var(--app-surface)] p-1">
+    <div className="mx-auto max-w-2xl px-4 py-6 space-y-6">
+      {/* Welcome & status bar */}
+      <div
+        className="rounded-2xl p-5 shadow-sm"
+        style={{
+          background: 'linear-gradient(135deg, var(--app-primary), var(--app-primary-hover))',
+          color: '#ffffff',
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-white/80">👋 Hello, {profile?.displayName || 'Worker'}</p>
+            <p className="mt-1 text-xl font-bold text-white">
+              {availability === 'ONLINE' ? '🟢 Ready to work' : '🔴 You are offline'}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-2xl font-black">{orders.length}</p>
+            <p className="text-xs text-white/70">Total orders</p>
+          </div>
+        </div>
+
+        {/* Availability toggle */}
+        <div className="mt-4 flex items-center gap-3">
+          <span className="text-xs font-semibold text-white/70 uppercase tracking-wider">
+            Status
+          </span>
+          <div
+            className="flex rounded-xl p-1"
+            style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
+          >
             <button
               type="button"
               onClick={() => handleSetAvailability('ONLINE')}
               disabled={availabilityLoading}
               className={`rounded-lg px-4 py-2 text-sm font-bold transition-all ${
                 availability === 'ONLINE'
-                  ? 'bg-[var(--app-online)] text-white shadow-md'
-                  : 'text-[var(--app-text-muted)] hover:text-[var(--app-text)]'
+                  ? 'bg-white shadow-md'
+                  : 'text-white/60 hover:text-white'
               }`}
+              style={availability === 'ONLINE' ? { color: 'var(--app-primary)' } : {}}
             >
               ONLINE
             </button>
@@ -135,8 +163,8 @@ export function TasksPage() {
               disabled={availabilityLoading}
               className={`rounded-lg px-4 py-2 text-sm font-bold transition-all ${
                 availability === 'OFFLINE'
-                  ? 'bg-[var(--app-offline)] text-[var(--app-text)] shadow-md'
-                  : 'text-[var(--app-text-muted)] hover:text-[var(--app-text)]'
+                  ? 'bg-white/20 text-white shadow-md'
+                  : 'text-white/60 hover:text-white'
               }`}
             >
               OFFLINE
@@ -144,51 +172,98 @@ export function TasksPage() {
           </div>
         </div>
       </div>
-      {current ? (
-        <TaskCard
-          order={current}
-          primaryLabel={current.status === 'WORKER_ASSIGNED' ? 'Accept Job' : 'Submit Proof & Complete'}
-          onPrimary={() =>
-            current.status === 'WORKER_ASSIGNED' ? handleAccept(current.id) : navigate(`/orders/${current.id}`)
-          }
-          secondaryLabel={current.status === 'WORKER_ASSIGNED' ? 'Reject' : undefined}
-          onSecondary={current.status === 'WORKER_ASSIGNED' ? () => setRejectOrderId(current.id) : undefined}
-          primaryLoading={actionLoading}
-          distanceLine={currentDistance}
-        />
-      ) : (
-        <Card className="rounded-xl border-[var(--app-border)] bg-[var(--app-surface)]">
-          <CardContent className="py-16 text-center text-[var(--app-text-muted)]">
-            <p className="text-lg font-medium">No tasks assigned</p>
-            <p className="mt-1 text-sm">You'll see new jobs here when your merchant assigns them.</p>
+
+      {/* Status summary cards */}
+      <div className="grid grid-cols-2 gap-3">
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-3xl font-black" style={{ color: 'var(--app-primary)' }}>{pendingCount}</p>
+            <p className="text-xs font-medium mt-1" style={{ color: 'var(--app-text-muted)' }}>⏳ Pending</p>
           </CardContent>
         </Card>
-      )}
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-3xl font-black" style={{ color: 'var(--app-accent)' }}>{acceptedCount}</p>
+            <p className="text-xs font-medium mt-1" style={{ color: 'var(--app-text-muted)' }}>✅ Accepted</p>
+          </CardContent>
+        </Card>
+      </div>
 
+      {/* Current task */}
+      <div>
+        <h2 className="mb-3 text-base font-bold" style={{ color: 'var(--app-text)' }}>
+          📍 Current Task
+        </h2>
+        {current ? (
+          <TaskCard
+            order={current}
+            primaryLabel={current.status === 'WORKER_ASSIGNED' ? 'Accept Job' : 'Submit Proof & Complete'}
+            onPrimary={() =>
+              current.status === 'WORKER_ASSIGNED' ? handleAccept(current.id) : navigate(`/orders/${current.id}`)
+            }
+            secondaryLabel={current.status === 'WORKER_ASSIGNED' ? 'Reject' : undefined}
+            onSecondary={current.status === 'WORKER_ASSIGNED' ? () => setRejectOrderId(current.id) : undefined}
+            primaryLoading={actionLoading}
+            distanceLine={currentDistance}
+          />
+        ) : (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <span className="text-4xl">📭</span>
+              <p className="mt-3 text-base font-semibold" style={{ color: 'var(--app-text)' }}>
+                No tasks assigned
+              </p>
+              <p className="mt-1 text-sm" style={{ color: 'var(--app-text-muted)' }}>
+                New jobs will appear here when your merchant assigns them.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* All assigned orders */}
       {orders.length > 1 && (
-        <>
-          <h2 className="mt-10 mb-4 text-base font-semibold text-[var(--app-text)]">All Assigned</h2>
-          <ul className="space-y-3">
+        <div>
+          <h2 className="mb-3 text-base font-bold" style={{ color: 'var(--app-text)' }}>
+            📋 All Assigned ({orders.length})
+          </h2>
+          <div className="space-y-3">
             {orders.map((order) => (
-              <li key={order.id}>
-                <Card
-                  className="rounded-xl border-[var(--app-border)] bg-[var(--app-surface)] cursor-pointer hover:border-[var(--app-primary)] transition-colors"
-                  onClick={() => navigate(`/orders/${order.id}`)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-medium text-[var(--app-text)]">{order.address}</p>
-                        <p className="text-sm text-[var(--app-text-muted)]">{order.status}</p>
+              <Card
+                key={order.id}
+                className="cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+                onClick={() => navigate(`/orders/${order.id}`)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div className="min-w-0">
+                      <p className="font-semibold truncate" style={{ color: 'var(--app-text)' }}>
+                        {order.address}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span
+                          className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+                          style={{
+                            backgroundColor: 'var(--app-primary-light)',
+                            color: 'var(--app-primary)',
+                          }}
+                        >
+                          {order.status.replace(/_/g, ' ')}
+                        </span>
+                        <span className="text-xs" style={{ color: 'var(--app-text-muted)' }}>
+                          {order.serviceNameSnapshot}
+                        </span>
                       </div>
-                      <span className="text-sm font-medium text-[var(--app-primary)]">View →</span>
                     </div>
-                  </CardContent>
-                </Card>
-              </li>
+                    <span className="text-sm font-semibold shrink-0 ml-3" style={{ color: 'var(--app-primary)' }}>
+                      View →
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
-          </ul>
-        </>
+          </div>
+        </div>
       )}
 
       <ConfirmDialog
