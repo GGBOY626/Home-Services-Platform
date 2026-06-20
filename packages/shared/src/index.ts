@@ -122,6 +122,7 @@ export interface Order {
   status: OrderStatus;
   merchantId: string | null;
   workerId: string | null;
+  workerName: string | null;
   createdBy: string;
   createdAt: string;
   updatedAt: string;

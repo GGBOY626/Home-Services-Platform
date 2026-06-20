@@ -212,9 +212,10 @@ public class OrderService {
         long start = System.currentTimeMillis();
         Order order = orderRepository.findById(orderId)
             .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
-        if (order.getStatus() != OrderStatus.MERCHANT_ASSIGNED) {
-            throw new IllegalStateException("Order must have status MERCHANT_ASSIGNED to assign worker. Current: " + order.getStatus());
+        if (order.getStatus() != OrderStatus.MERCHANT_ASSIGNED && order.getStatus() != OrderStatus.WORKER_ASSIGNED) {
+            throw new IllegalStateException("Order must have status MERCHANT_ASSIGNED or WORKER_ASSIGNED to assign worker. Current: " + order.getStatus());
         }
+        boolean isReassignment = order.getStatus() == OrderStatus.WORKER_ASSIGNED;
         if (!order.getMerchantId().equals(merchantId)) {
             throw new IllegalArgumentException("Order is not assigned to your merchant");
         }
@@ -229,16 +230,21 @@ public class OrderService {
             throw new IllegalArgumentException("Selected worker is currently OFFLINE.");
         }
         OrderStatus from = order.getStatus();
+        UUID previousWorkerId = order.getWorkerId();
         order.setWorkerId(workerId);
         order.setStatus(OrderStatus.WORKER_ASSIGNED);
         order.setWorkerAcceptDeadline(Instant.now().plusSeconds(dispatchProperties.getWorkerAcceptTtlMinutes() * 60L));
         order = orderRepository.save(order);
-        recordHistory(order.getId(), from.name(), order.getStatus().name(), principal.role().name(), principal.id(), null);
+        String reason = isReassignment ? "Reassigned from worker " + previousWorkerId + " to " + workerId : null;
+        recordHistory(order.getId(), from.name(), order.getStatus().name(), principal.role().name(), principal.id(), reason);
         long dur = System.currentTimeMillis() - start;
+        String actionDesc = isReassignment ? "Order reassigned to worker" : "Order assigned to worker";
         AuditLogging.logWithActor("UPDATE", "Order", "id=" + order.getId(),
             principal.role().name(), principal.id().toString(), dur);
         auditEventService.recordWithContext(principal.role().name(), principal.id().toString(), AuditActions.ORDER_ASSIGN_WORKER, "ORDER", order.getId().toString(),
-            "Order assigned to worker", java.util.Map.of("workerId", workerId.toString(), "merchantId", merchantId.toString()), (int) dur);
+            actionDesc, java.util.Map.of("workerId", workerId.toString(), "merchantId", merchantId.toString(),
+                "previousWorkerId", previousWorkerId != null ? previousWorkerId.toString() : "none",
+                "isReassignment", String.valueOf(isReassignment)), (int) dur);
         return toResponse(order);
     }
 
@@ -755,6 +761,12 @@ public class OrderService {
     }
 
     OrderResponse toResponse(Order order) {
+        String workerName = null;
+        if (order.getWorkerId() != null) {
+            workerName = workerProfileRepository.findById(order.getWorkerId())
+                .map(WorkerProfile::getDisplayName)
+                .orElse(null);
+        }
         return OrderResponse.builder()
             .id(order.getId())
             .serviceItemId(order.getServiceItemId())
@@ -766,6 +778,7 @@ public class OrderService {
             .status(order.getStatus())
             .merchantId(order.getMerchantId())
             .workerId(order.getWorkerId())
+            .workerName(workerName)
             .createdBy(order.getCreatedBy())
             .createdAt(order.getCreatedAt())
             .updatedAt(order.getUpdatedAt())

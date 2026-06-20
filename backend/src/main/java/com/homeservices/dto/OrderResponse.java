@@ -22,6 +22,7 @@ public class OrderResponse {
     private OrderStatus status;
     private UUID merchantId;
     private UUID workerId;
+    private String workerName;
     private UUID createdBy;
     private Instant createdAt;
     private Instant updatedAt;

@@ -29,8 +29,9 @@ export function OrderDrawer({
 }: OrderDrawerProps) {
   if (!order) return null;
 
-  const canAssign = order.status === 'MERCHANT_ASSIGNED';
+  const canAssign = order.status === 'MERCHANT_ASSIGNED' || order.status === 'WORKER_ASSIGNED';
   const waitingWorker = order.status === 'WORKER_ASSIGNED';
+  const isReassign = order.status === 'WORKER_ASSIGNED' && order.workerId != null;
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange} title={`Order ${order.id.slice(0, 8)}…`} side="right">
@@ -46,9 +47,24 @@ export function OrderDrawer({
         {order.cancelReason && <p className="text-sm text-neutral-500"><span className="font-medium">Cancel reason:</span> {order.cancelReason}</p>}
         <p className="text-sm text-neutral-500">Created {formatDate(order.createdAt)}</p>
 
+        {/* Show assigned worker info when WORKER_ASSIGNED */}
+        {isReassign && order.workerName && (
+          <div className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 text-sm text-blue-800">
+            Assigned to <span className="font-semibold">{order.workerName}</span> — awaiting acceptance
+          </div>
+        )}
+
+        {waitingWorker && !isReassign && (
+          <p className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
+            Waiting for worker acceptance
+          </p>
+        )}
+
         {canAssign && (
           <div className="space-y-2 pt-4 border-t border-neutral-200">
-            <p className="text-sm font-medium text-neutral-700">Assign worker</p>
+            <p className="text-sm font-medium text-neutral-700">
+              {isReassign ? 'Reassign to a different worker' : 'Assign worker'}
+            </p>
             {workers.length === 0 ? (
               <p className="text-sm text-neutral-500">No online workers available.</p>
             ) : (
@@ -59,9 +75,16 @@ export function OrderDrawer({
                     order.addressLat != null && order.addressLng != null
                       ? formatDistance(haversineKm(w.homeLat, w.homeLng, order.addressLat, order.addressLng))
                       : null;
+                  const isCurrentWorker = isReassign && w.id === order.workerId;
                   return (
-                    <Button key={w.id} size="sm" onClick={() => onAssignWorker(w.id)} disabled={assignLoading}>
-                      {w.displayName}{dist ? ` · ${dist}` : ''}
+                    <Button
+                      key={w.id}
+                      size="sm"
+                      variant={isCurrentWorker ? 'secondary' : 'default'}
+                      onClick={() => onAssignWorker(w.id)}
+                      disabled={assignLoading || isCurrentWorker}
+                    >
+                      {w.displayName}{dist ? ` · ${dist}` : ''}{isCurrentWorker ? ' (current)' : ''}
                     </Button>
                   );
                 })}
@@ -70,16 +93,10 @@ export function OrderDrawer({
           </div>
         )}
 
-        {canAssign && (
+        {canAssign && order.status === 'MERCHANT_ASSIGNED' && (
           <Button variant="destructive" className="mt-4" onClick={onRejectClick}>
             Reject order
           </Button>
-        )}
-
-        {waitingWorker && (
-          <p className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
-            Waiting for worker acceptance
-          </p>
         )}
 
         {fetchProof && (order.status === 'COMPLETED' || order.status === 'CLOSED') && (
