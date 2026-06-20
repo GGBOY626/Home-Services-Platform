@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#1a1a2e" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>🏠</text></svg>" />
+  <title>Home Services Platform</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      background: linear-gradient(135deg, #0f0c29 0%, #1a1a2e 40%, #16213e 70%, #0f3460 100%);
+      min-height: 100vh;
+      color: #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      position: relative;
+      overflow-x: hidden;
+    }
+    /* Animated background particles */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -50%; left: -50%;
+      width: 200%; height: 200%;
+      background: radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                  radial-gradient(circle at 80% 20%, rgba(2, 132, 199, 0.06) 0%, transparent 50%),
+                  radial-gradient(circle at 60% 80%, rgba(22, 163, 74, 0.06) 0%, transparent 50%),
+                  radial-gradient(circle at 40% 40%, rgba(245, 158, 11, 0.04) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .container { position: relative; z-index: 1; max-width: 960px; width: 100%; text-align: center; }
+    .badge {
+      display: inline-block;
+      padding: 0.35rem 1rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #a5b4fc;
+      margin-bottom: 1.5rem;
+      backdrop-filter: blur(4px);
+    }
+    h1 {
+      font-size: clamp(2.2rem, 5vw, 3.6rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 0.75rem;
+      background: linear-gradient(135deg, #e2e8f0 0%, #a5b4fc 40%, #7dd3fc 70%, #86efac 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle {
+      font-size: 1.1rem;
+      color: #94a3b8;
+      margin-bottom: 3rem;
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.6;
+    }
+    .grid { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 3rem; }
+    .card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 2rem 1.5rem;
+      border-radius: 1.25rem;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      backdrop-filter: blur(8px);
+      position: relative;
+      overflow: hidden;
+    }
+    .card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      border-radius: 1.25rem;
+      pointer-events: none;
+    }
+    .card:hover { transform: translateY(-6px); box-shadow: 0 20px 40px rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.2); }
+    .card:hover::after { opacity: 1; }
+    .card-icon { font-size: 2.5rem; transition: transform 0.3s ease; }
+    .card:hover .card-icon { transform: scale(1.15); }
+    .card-label { font-weight: 700; font-size: 1.05rem; letter-spacing: -0.01em; }
+    .card-desc { font-size: 0.8rem; color: #94a3b8; line-height: 1.4; }
+    /* Card color accents */
+    .card-user { --accent: #a5b4fc; }    .card-user::after { background: radial-gradient(circle at center, rgba(165,180,252,0.12), transparent 70%); }
+    .card-worker { --accent: #86efac; }   .card-worker::after { background: radial-gradient(circle at center, rgba(134,239,172,0.12), transparent 70%); }
+    .card-merchant { --accent: #7dd3fc; } .card-merchant::after { background: radial-gradient(circle at center, rgba(125,211,252,0.12), transparent 70%); }
+    .card-admin { --accent: #fbbf24; }   .card-admin::after { background: radial-gradient(circle at center, rgba(251,191,36,0.12), transparent 70%); }
+    .card:hover .card-label { color: var(--accent); }
+    footer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      position: relative;
+      z-index: 1;
+    }
+    .footer-main {
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: #cbd5e1;
+    }
+    .footer-dev {
+      font-size: 0.78rem;
+      color: #64748b;
+      font-weight: 500;
+    }
+    .footer-dev span {
+      background: linear-gradient(135deg, #a5b4fc, #7dd3fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 700;
+    }
+    .divider {
+      width: 60px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+      margin: 0.25rem 0;
+    }
+    @media (max-width: 480px) {
+      body { padding: 1.5rem 1rem; }
+      .grid { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+      .card { padding: 1.5rem 1rem; }
+      h1 { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <span class="badge">Home Services Platform</span>
+    <h1>Find the help you need,<br />when you need it.</h1>
+    <p class="subtitle">One platform connecting customers, workers, merchants and administrators — making home services simple and reliable.</p>
+    <div class="grid">
+      <a href="/user/" class="card card-user">
+        <span class="card-icon">🏠</span>
+        <span class="card-label">User</span>
+        <span class="card-desc">Book home services &amp; track your orders</span>
+      </a>
+      <a href="/worker/" class="card card-worker">
+        <span class="card-icon">🛠️</span>
+        <span class="card-label">Worker</span>
+        <span class="card-desc">Accept jobs &amp; manage your tasks</span>
+      </a>
+      <a href="/merchant/" class="card card-merchant">
+        <span class="card-icon">🏪</span>
+        <span class="card-label">Merchant</span>
+        <span class="card-desc">Manage your business &amp; dispatch workers</span>
+      </a>
+      <a href="/admin/" class="card card-admin">
+        <span class="card-icon">⚙️</span>
+        <span class="card-label">Admin</span>
+        <span class="card-desc">Oversee platform operations &amp; analytics</span>
+      </a>
+    </div>
+    <footer>
+      <p class="footer-main">Home Services Platform</p>
+      <div class="divider"></div>
+      <p class="footer-dev">Developed by <span>Wei Zheng</span></p>
+    </footer>
+  </div>
+</body>
+</html>

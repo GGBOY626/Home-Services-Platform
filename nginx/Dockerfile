@@ -46,6 +46,9 @@ RUN rm /etc/nginx/conf.d/default.conf
 
 COPY nginx/nginx.conf /etc/nginx/nginx.conf
 
+# Copy landing page
+COPY landing/index.html /usr/share/nginx/html/index.html
+
 # Copy built apps (each app's dist is at apps/<name>/dist)
 COPY --from=frontend-builder /app/apps/user/dist   /usr/share/nginx/html/user
 COPY --from=frontend-builder /app/apps/admin/dist  /usr/share/nginx/html/admin
