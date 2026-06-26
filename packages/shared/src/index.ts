@@ -220,6 +220,18 @@ export interface FinanceSummaryDTO {
   breakdownByStatus: Record<string, number>;
 }
 
+export interface PaymentMethodBreakdownDTO {
+  cashOrderCount: number;
+  onlineOrderCount: number;
+  cashTotalCents: number;
+  onlineTotalCents: number;
+}
+
+export interface MerchantDashboardStatsDTO {
+  workerCount: number;
+  paymentMethodBreakdown: PaymentMethodBreakdownDTO;
+}
+
 export type FeeRuleScope = 'GLOBAL' | 'CATEGORY';
 
 export interface PlatformFeeRuleDTO {

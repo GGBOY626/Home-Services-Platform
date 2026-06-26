@@ -33,4 +33,8 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     Optional<Order> findByStripePaymentIntentId(String stripePaymentIntentId);
 
     List<Order> findByPaymentStatusAndCreatedAtBefore(PaymentStatus paymentStatus, Instant createdAtBefore);
+
+    long countByMerchantId(UUID merchantId);
+
+    List<Order> findByMerchantIdAndPaymentStatusIn(UUID merchantId, List<PaymentStatus> statuses);
 }

@@ -18,4 +18,6 @@ public interface WorkerProfileRepository extends JpaRepository<WorkerProfile, UU
     List<WorkerProfile> findByMerchantId(UUID merchantId);
 
     List<WorkerProfile> findByMerchantIdAndAvailability(UUID merchantId, WorkerAvailability availability);
+
+    long countByMerchantId(UUID merchantId);
 }

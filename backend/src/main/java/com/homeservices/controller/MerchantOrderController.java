@@ -11,13 +11,18 @@ import com.homeservices.dto.AssignWorkerRequest;
 import com.homeservices.dto.CompletionProofDTO;
 import com.homeservices.dto.CreateWorkerRequest;
 import com.homeservices.dto.CreateWorkerResponse;
+import com.homeservices.dto.MerchantDashboardStatsDTO;
 import com.homeservices.dto.MerchantMeResponse;
 import com.homeservices.dto.OrderResponse;
+import com.homeservices.dto.PaymentMethodBreakdownDTO;
 import com.homeservices.dto.RejectRequest;
 import com.homeservices.dto.UpdateLocationRequest;
 import com.homeservices.dto.UpdateWorkerRequest;
 import com.homeservices.dto.WorkerSummaryResponse;
+import com.homeservices.domain.Order;
+import com.homeservices.domain.PaymentStatus;
 import com.homeservices.repository.MerchantProfileRepository;
+import com.homeservices.repository.OrderRepository;
 import com.homeservices.repository.UserAccountRepository;
 import com.homeservices.repository.WorkerProfileRepository;
 import com.homeservices.security.JwtPrincipal;
@@ -56,6 +61,7 @@ public class MerchantOrderController {
     private final CurrentUserService currentUserService;
     private final WorkerProfileRepository workerProfileRepository;
     private final MerchantProfileRepository merchantProfileRepository;
+    private final OrderRepository orderRepository;
     private final UserAccountRepository userAccountRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
@@ -101,6 +107,49 @@ public class MerchantOrderController {
             .businessLat(p.getBusinessLat())
             .businessLng(p.getBusinessLng())
             .build();
+    }
+
+    @GetMapping("/dashboard/stats")
+    @Operation(summary = "Get dashboard stats: worker count + payment method breakdown (cash vs online)")
+    public ResponseEntity<MerchantDashboardStatsDTO> getDashboardStats(@AuthenticationPrincipal JwtPrincipal principal) {
+        long start = System.currentTimeMillis();
+        UUID merchantId = currentUserService.getMerchantId(principal)
+            .orElseThrow(() -> new IllegalStateException("Merchant profile not found"));
+
+        // Worker count
+        long workerCount = workerProfileRepository.countByMerchantId(merchantId);
+
+        // Payment method breakdown: cash vs online
+        List<PaymentStatus> cashStatuses = List.of(PaymentStatus.CASH_PENDING);
+        List<PaymentStatus> onlineStatuses = List.of(
+            PaymentStatus.PAID, PaymentStatus.UNPAID, PaymentStatus.AWAITING,
+            PaymentStatus.REFUNDED, PaymentStatus.PARTIALLY_REFUNDED, PaymentStatus.FAILED
+        );
+
+        List<Order> cashOrders = orderRepository.findByMerchantIdAndPaymentStatusIn(merchantId, cashStatuses);
+        List<Order> onlineOrders = orderRepository.findByMerchantIdAndPaymentStatusIn(merchantId, onlineStatuses);
+
+        long cashTotalCents = cashOrders.stream()
+            .mapToLong(o -> o.getPriceCents() != null ? o.getPriceCents().longValue() : 0)
+            .sum();
+        long onlineTotalCents = onlineOrders.stream()
+            .mapToLong(o -> o.getPriceCents() != null ? o.getPriceCents().longValue() : 0)
+            .sum();
+
+        PaymentMethodBreakdownDTO breakdown = PaymentMethodBreakdownDTO.builder()
+            .cashOrderCount(cashOrders.size())
+            .onlineOrderCount(onlineOrders.size())
+            .cashTotalCents(cashTotalCents)
+            .onlineTotalCents(onlineTotalCents)
+            .build();
+
+        AuditLogging.logWithActor("READ", "MerchantDashboardStats", "merchantId=" + merchantId,
+            principal.role().name(), principal.id().toString(), System.currentTimeMillis() - start);
+
+        return ResponseEntity.ok(MerchantDashboardStatsDTO.builder()
+            .workerCount(workerCount)
+            .paymentMethodBreakdown(breakdown)
+            .build());
     }
 
     @GetMapping("/orders")

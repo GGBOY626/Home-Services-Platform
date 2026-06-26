@@ -48,7 +48,11 @@
       "Bash(JAVA_HOME=\"D:/java/jdk21\" mvn compile -q)",
       "Bash(npx pnpm *)",
       "Bash(open file:///D:/class_project/Home-Services-Platform/landing/index.html)",
-      "Bash(start *)"
+      "Bash(start *)",
+      "Bash(xargs grep -l \"FinanceSummaryDTO\\\\|PayoutLedgerDTO\\\\|MerchantProfile\")",
+      "Bash(JAVA_HOME=\"D:\\\\java\\\\jdk-21\" mvn compile -q)",
+      "Bash(dir \"D:\\\\java\")",
+      "Bash(JAVA_HOME=\"D:\\\\java\\\\jdk21\" mvn compile -q)"
     ]
   }
 }
